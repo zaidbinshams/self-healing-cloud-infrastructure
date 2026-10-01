@@ -1,0 +1,77 @@
+# Minimal Prometheus (PLAN.md M2): memory limit 1.5Gi, retention 3d / 4GB, NodePort 30090.
+# Namespace `monitoring` is in namespace.yaml (applied first).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: monitoring
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path     # K3s built-in provisioner
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels: {app: prometheus}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}       # RWO volume
+  selector:
+    matchLabels: {app: prometheus}
+  template:
+    metadata:
+      labels: {app: prometheus}
+      annotations:
+        # bump when prometheus-config.yaml changes, to force a restart on apply
+        capstone/config-rev: "1"
+    spec:
+      serviceAccountName: prometheus
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: quay.io/prometheus/prometheus:v3.5.0
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=3d
+            - --storage.tsdb.retention.size=4GB
+          ports:
+            - {name: web, containerPort: 9090}
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {cpu: "1", memory: 1536Mi}
+          readinessProbe:
+            httpGet: {path: /-/ready, port: web}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /-/healthy, port: web}
+            periodSeconds: 15
+            failureThreshold: 4
+          volumeMounts:
+            - {name: config, mountPath: /etc/prometheus}
+            - {name: data, mountPath: /prometheus}
+      volumes:
+        - name: config
+          configMap: {name: prometheus-config}
+        - name: data
+          persistentVolumeClaim: {claimName: prometheus-data}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  type: NodePort
+  selector: {app: prometheus}
+  ports:
+    - {name: web, port: 9090, targetPort: web, nodePort: 30090}

@@ -1,0 +1,32 @@
+# Scrape kubelet cAdvisor every 5 s; keep only the four contract metrics in namespace boutique
+# (CLAUDE.md §5.4 keep-list). No other jobs, no rules.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+      scrape_timeout: 4s
+      evaluation_interval: 5s
+
+    scrape_configs:
+      - job_name: cadvisor
+        scheme: https
+        metrics_path: /metrics/cadvisor
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          # kubelet serving cert is self-signed per node on K3s; single node on the LAN
+          insecure_skip_verify: true
+        kubernetes_sd_configs:
+          - role: node          # target = <InternalIP>:10250 (kubelet)
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: container_cpu_usage_seconds_total|container_cpu_cfs_throttled_periods_total|container_cpu_cfs_periods_total|container_memory_working_set_bytes
+            action: keep
+          - source_labels: [namespace]
+            regex: boutique
+            action: keep

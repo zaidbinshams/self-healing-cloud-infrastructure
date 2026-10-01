@@ -1,0 +1,16 @@
+# SMOKE TEST ONLY (PLAN.md M2). Episode faults are built in code by env/injector.py.
+# Same shape as the F2 StressChaos (CLAUDE.md §5.10), 1 worker, 60 s.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: smoke-stress-currency
+  namespace: boutique
+spec:
+  mode: one
+  selector:
+    namespaces: [boutique]
+    labelSelectors: {app: currencyservice}
+  containerNames: [server]
+  stressors:
+    cpu: {workers: 1, load: 100}
+  duration: "60s"

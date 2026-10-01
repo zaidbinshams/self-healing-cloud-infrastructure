@@ -1,0 +1,5 @@
+# Separate file so `kubectl apply -f k8s/prometheus/` (alphabetical) creates it first.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring

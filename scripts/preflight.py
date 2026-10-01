@@ -55,10 +55,23 @@ CLOCK_PROBE_BUDGET_S = 4.0        # time spent sampling server Date headers
 A_IDLE_MEMORY_MAX_BYTES = 10 * 1024**3  # [override] documented gate: 5 GiB (PLAN.md M1 idle "used")
 FRONTEND_TIMEOUT_S = (2.0, 5.0)
 FRONTEND_NODE_PORT = 30080
-REQUIRED_ENV = ("A_IP", "NS", "KUBE_ADMIN", "KUBE_AGENT", "KUBE_CTRL", "FRONTEND_URL", "OB_VERSION")
+REQUIRED_ENV = ("A_IP", "NS", "KUBE_ADMIN", "KUBE_AGENT", "KUBE_CTRL", "FRONTEND_URL", "OB_VERSION",
+                "PROM_URL", "LOCUST_URL")
 REQUIRED_GITIGNORE = ("config/kube/", "data/", ".venv/")
 INJECT_KEY = "chaos-mesh.org/inject"
 INJECT_VALUE = "enabled"
+# --- M2 gates (PLAN.md Milestone 2 "Validate"; not relaxed by the §0.1 overrides) ---
+CHAOS_NS = "chaos-mesh"
+CHAOS_REQUIRED_WORKLOADS = ("chaos-controller-manager", "chaos-daemon")
+CHAOS_DAEMON_LOG_BAD = re.compile(r"socket|no such file", re.IGNORECASE)
+CHAOS_SOCKET_PATH = "/run/k3s/containerd/containerd.sock"
+MONITORING_NS = "monitoring"
+PROM_MAX_SERIES = 1000
+PROM_MAX_MEMORY_BYTES = int(1.2 * 1024**3)       # PLAN.md: prometheus < 1.2Gi
+A_LOADED_MEMORY_MAX_BYTES = 8 * 1024**3          # PLAN.md M2: "used" < 8 GiB under load
+LOCUST_TICK_LOOKBACK_S = 20                      # PLAN.md: /tick over the last 20 s
+LOCUST_MIN_REQUESTS = 500
+LOCUST_MAX_FAIL_RATIO = 0.01
 
 # (verb, group, resource, subresource, namespace, expected_allowed)
 AccessCase = tuple[str, str, str, str, str, bool]
@@ -395,6 +408,133 @@ def check_a_idle_memory(ctx: Ctx) -> CheckResult:
                        f"node working set {gib:.2f} GiB (metrics-server)")
 
 
+# ----------------------------------------------------------------------------- M2 checks
+
+def _prom_get(ctx: Ctx, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
+    resp = requests.get(ctx.env["PROM_URL"].rstrip("/") + path, params=params,
+                        timeout=tuple(ctx.contract["telemetry"]["prom_timeout_s"]))
+    resp.raise_for_status()
+    return resp.json()
+
+
+def check_chaos_pods(ctx: Ctx) -> CheckResult:
+    pods = client.CoreV1Api(_admin(ctx)).list_namespaced_pod(CHAOS_NS, _request_timeout=ctx.timeout).items
+    problems = []
+    for workload in CHAOS_REQUIRED_WORKLOADS:
+        mine = [p for p in pods if p.metadata.name.startswith(workload + "-")]
+        running = [p for p in mine if p.status.phase == "Running"
+                   and all(cs.ready for cs in p.status.container_statuses or [])]
+        if not running:
+            problems.append(f"{workload}: {len(running)}/{len(mine)} running+ready")
+    extra = sorted({p.metadata.name.rsplit("-", 2)[0] for p in pods if "dashboard" in p.metadata.name})
+    if extra:
+        problems.append(f"dashboard present {extra}")
+    return CheckResult("chaos-mesh controller + daemon Running, no dashboard", not problems,
+                       "; ".join(problems) or f"{len(pods)} pods")
+
+
+def check_chaos_config(ctx: Ctx) -> CheckResult:
+    apps = client.AppsV1Api(_admin(ctx))
+    ctrl = apps.read_namespaced_deployment("chaos-controller-manager", CHAOS_NS, _request_timeout=ctx.timeout)
+    env = {e.name: e.value for e in ctrl.spec.template.spec.containers[0].env or []}
+    ds = apps.read_namespaced_daemon_set("chaos-daemon", CHAOS_NS, _request_timeout=ctx.timeout)
+    args = " ".join(ds.spec.template.spec.containers[0].command or []) + " " + \
+        " ".join(ds.spec.template.spec.containers[0].args or [])
+    host_paths = [v.host_path.path for v in ds.spec.template.spec.volumes or [] if v.host_path]
+    problems = []
+    if env.get("ENABLE_FILTER_NAMESPACE") != "true":
+        problems.append(f"ENABLE_FILTER_NAMESPACE={env.get('ENABLE_FILTER_NAMESPACE')}")
+    if "containerd" not in args:
+        problems.append("daemon runtime not containerd")
+    if not any(CHAOS_SOCKET_PATH.startswith(p) for p in host_paths):
+        problems.append(f"no hostPath covering {CHAOS_SOCKET_PATH} ({host_paths})")
+    return CheckResult("chaos-mesh: containerd, K3s socket, namespace filter", not problems,
+                       "; ".join(problems) or "ok")
+
+
+def check_chaos_daemon_logs(ctx: Ctx) -> CheckResult:
+    core = client.CoreV1Api(_admin(ctx))
+    pods = [p for p in core.list_namespaced_pod(CHAOS_NS, _request_timeout=ctx.timeout).items
+            if p.metadata.name.startswith("chaos-daemon-")]
+    bad = []
+    for pod in pods:
+        log = core.read_namespaced_pod_log(pod.metadata.name, CHAOS_NS, _request_timeout=ctx.timeout)
+        bad += [ln.strip()[:160] for ln in log.splitlines() if CHAOS_DAEMON_LOG_BAD.search(ln)]
+    return CheckResult("chaos-daemon logs free of socket errors", bool(pods) and not bad,
+                       f"{len(bad)} bad lines, first: {bad[0]}" if bad else f"{len(pods)} daemon pod(s) clean")
+
+
+def check_chaos_inject_scope(ctx: Ctx) -> CheckResult:
+    nss = client.CoreV1Api(_admin(ctx)).list_namespace(_request_timeout=ctx.timeout).items
+    enabled = sorted(n.metadata.name for n in nss
+                     if INJECT_VALUE in ((n.metadata.annotations or {}).get(INJECT_KEY),
+                                         (n.metadata.labels or {}).get(INJECT_KEY)))
+    return CheckResult(f"only {ctx.ns} enabled for chaos injection", enabled == [ctx.ns], f"enabled={enabled}")
+
+
+def check_prom_targets(ctx: Ctx) -> CheckResult:
+    targets = _prom_get(ctx, "/api/v1/targets")["data"]["activeTargets"]
+    states = [f"{t['labels'].get('job')}={t['health']}" for t in targets]
+    ok = bool(targets) and all(t["health"] == "up" for t in targets)
+    return CheckResult("prometheus targets all up", ok, ", ".join(states) or "no active targets")
+
+
+def check_prom_series(ctx: Ctx) -> CheckResult:
+    n = int(_prom_get(ctx, "/api/v1/status/tsdb")["data"]["headStats"]["numSeries"])
+    return CheckResult(f"prometheus head series < {PROM_MAX_SERIES} (keep-list)", 0 < n < PROM_MAX_SERIES,
+                       f"numSeries={n}")
+
+
+def check_promq(ctx: Ctx) -> CheckResult:
+    from scripts.promq import build_queries, run_query
+    managed = ctx.contract["cluster"]["managed"]
+    t = time.time()
+    problems = []
+    for name, expr in build_queries(ctx.contract["telemetry"]["rate_window"]).items():
+        res = run_query(ctx.env["PROM_URL"], name, expr, t,
+                        tuple(ctx.contract["telemetry"]["prom_timeout_s"]), managed)
+        if not res.ok:
+            problems.append(f"{name}: {res.error}")
+            continue
+        problems += [f"{name}/{d}={res.values.get(d)}" for d in managed
+                     if d not in res.values or not math.isfinite(res.values[d])]
+    return CheckResult("contract PromQL: cpu/thr/mem finite for all managed", not problems,
+                       "; ".join(problems)[:300] or f"{len(managed)} deployments x 3 queries")
+
+
+def check_prom_memory(ctx: Ctx) -> CheckResult:
+    usage = client.CustomObjectsApi(_admin(ctx)).list_namespaced_custom_object(
+        "metrics.k8s.io", "v1beta1", MONITORING_NS, "pods", _request_timeout=ctx.timeout)
+    used = {i["metadata"]["name"]: sum(int(parse_quantity(c["usage"]["memory"])) for c in i["containers"])
+            for i in usage["items"] if i["metadata"]["name"].startswith("prometheus-")}
+    ok = bool(used) and all(v < PROM_MAX_MEMORY_BYTES for v in used.values())
+    return CheckResult("prometheus memory < 1.2 GiB", ok,
+                       ", ".join(f"{k}={v / 1024**2:.0f} MiB" for k, v in used.items()) or "no prometheus pod metrics")
+
+
+def check_locust_tick(ctx: Ctx) -> CheckResult:
+    t_to = time.time()
+    resp = requests.get(ctx.env["LOCUST_URL"].rstrip("/") + "/tick",
+                        params={"from": f"{t_to - LOCUST_TICK_LOOKBACK_S:.3f}", "to": f"{t_to:.3f}"},
+                        timeout=tuple(ctx.contract["telemetry"]["locust_timeout_s"]))
+    resp.raise_for_status()
+    body = resp.json()
+    n, failures = int(body["n"]), int(body["failures"])
+    ratio = failures / n if n else 1.0
+    ok = n > LOCUST_MIN_REQUESTS and ratio < LOCUST_MAX_FAIL_RATIO
+    return CheckResult(f"locust /tick: n > {LOCUST_MIN_REQUESTS}, fail < {LOCUST_MAX_FAIL_RATIO}", ok,
+                       f"n={n} fail_ratio={ratio:.4f} p50={body['p50_ms']:.0f} ms p99={body['p99_ms']:.0f} ms "
+                       f"rps={body['rps']:.1f}")
+
+
+def check_a_loaded_memory(ctx: Ctx) -> CheckResult:
+    usage = client.CustomObjectsApi(_admin(ctx)).list_cluster_custom_object(
+        "metrics.k8s.io", "v1beta1", "nodes", _request_timeout=ctx.timeout)
+    used = sum(int(parse_quantity(i["usage"]["memory"])) for i in usage["items"])
+    return CheckResult(f"A memory under load < {A_LOADED_MEMORY_MAX_BYTES / 1024**3:g} GiB",
+                       used < A_LOADED_MEMORY_MAX_BYTES, f"node working set {used / 1024**3:.2f} GiB (metrics-server)")
+
+
 STAGES: dict[str, list[Callable[[Ctx], CheckResult]]] = {
     "m1": [
         check_contract, check_env, check_gitignore, check_kubeconfig_files,
@@ -403,6 +543,12 @@ STAGES: dict[str, list[Callable[[Ctx], CheckResult]]] = {
         check_agent_rbac, check_controller_rbac,
         check_golden_live, check_golden_committed,
         check_a_idle_memory, check_clock_skew, check_lan_rtt,
+    ],
+    "m2": [
+        check_env, check_node, check_namespace, check_deployments,
+        check_chaos_pods, check_chaos_config, check_chaos_daemon_logs, check_chaos_inject_scope,
+        check_prom_targets, check_prom_series, check_promq, check_prom_memory,
+        check_locust_tick, check_a_loaded_memory, check_clock_skew,
     ],
 }
 
