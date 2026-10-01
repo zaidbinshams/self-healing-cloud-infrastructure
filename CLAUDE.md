@@ -25,7 +25,7 @@ The scientific value comes entirely from **real system physics.** Anything that 
 ## 2. Architecture (Non-Negotiable)
 
 ```
-                   wired Ethernet LAN (RTT p99 < 2 ms)
+        LAN link (design: wired, RTT p99 < 2 ms; see Environment Overrides below)
 ┌───────────────────────────────┐            ┌──────────────────────────────────────────┐
 │ MACHINE A — cluster (12 GB)   │            │ MACHINE B — execution (10 GB)             │
 │ headless Linux, swap OFF      │            │ clock authority (chrony)                  │
@@ -70,6 +70,23 @@ The other services run but are outside the agent's state and action space.
 | `config/kube/controller.kubeconfig` | `env/injector.py` and `reset()` | `boutique`: deployments + scale get/list/patch; pods get/list/delete; `stresschaos.chaos-mesh.org` create/get/list/delete |
 
 **GPU.** There is no GPU anywhere in this project. Torch is the CPU build on B.
+
+### Environment Overrides (Human-Approved 2026-10-01)
+
+The deployed testbed differs from the design above. A and B are linked over a **wireless hotspot** (B runs in WSL2 behind NAT), and **A runs other workloads at the same time**. For this environment only, three preflight thresholds are relaxed. They are marked `[override]` in `scripts/preflight.py`:
+
+| Check | Design gate | Override |
+|---|---|---|
+| LAN RTT p99 (`ping -c 200`) | < 2 ms | **< 800 ms** |
+| A–B clock skew | < 200 ms | **< 1000 ms** |
+| Machine A idle memory | < 5 GiB | **< 10 GiB** |
+
+Consequences to keep in mind:
+- Prometheus `time=` evaluation may be off by up to 5% of a tick. Expect more stale and imputed telemetry (G2).
+- Decision latency (G1) has less headroom against the 3.0 s collection deadline.
+- Results must be reported as obtained under this environment.
+
+These are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
 
 ---
 
@@ -201,7 +218,7 @@ The other services run but are outside the agent's state and action space.
 2. **Never run long jobs in the foreground.** Use `nohup bash scripts/watchdog.sh ... > data/logs/<run>.log 2>&1 &` and report the PID and log path.
 3. Never edit generated files: `k8s/boutique/golden.yaml`, `config/golden_live.json`, `config/calibration.json`, `eval/schedules/*`.
 4. **Never upgrade pinned dependencies mid-project.** Before using a Tianshou API, read the installed version's source; don't assume docs from another version apply.
-5. If a validation gate fails, **fix the cause.** Never loosen a gate threshold.
+5. If a validation gate fails, **fix the cause.** Never loosen a gate threshold. (Only exceptions: the human-approved environment overrides in §2.)
 
 ---
 
@@ -658,7 +675,7 @@ Fields:
 7. **HPA and zero replicas.** HPA does not act on a deployment at zero replicas, so F3 stays unhealed in the `k8s_hpa` baseline. This is correct behavior, not a bug.
 8. **Locust headless mode** has no web UI, and therefore no `/swarm` or `/tick` routes. Run with the web UI bound to 127.0.0.1 and autostart (or a one-time `/swarm` at launch), plus the custom `/tick` route.
 9. **B CPU contention.** When gradient updates starve Locust's event loop, measured P99 inflates. Keep Locust on cores 0–1 and torch on the remaining cores with 2 threads.
-10. **Clock skew.** Skew between A and B shifts Prometheus `time=` evaluation. Preflight fails if skew exceeds 200 ms.
+10. **Clock skew.** Skew between A and B shifts Prometheus `time=` evaluation. Preflight fails if skew exceeds 200 ms by design; the current environment override allows 1000 ms (§2).
 11. **Masking NaN.** The masked-entropy 0 · log 0 NaN (§5.12 rule 1) and an unfiltered α loss (§5.12 rule 5) are the two most likely causes of a "mysteriously diverging" agent.
 
 ---

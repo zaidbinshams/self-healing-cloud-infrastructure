@@ -1,0 +1,23 @@
+NAME              STATUS   ROLES           AGE    VERSION        INTERNAL-IP      EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION             CONTAINER-RUNTIME
+zaid-laptop-0-u   Ready    control-plane   162m   v1.36.4+k3s1   192.168.137.10   <none>        Ubuntu 26.04.1 LTS   7.0.0-30-generic (amd64)   containerd://2.3.4-k3s1.36
+NAMESPACE     NAME                                        READY   STATUS    RESTARTS   AGE
+boutique      adservice-64956dfcbf-sx6ct                  1/1     Running   0          127m
+boutique      cartservice-5f597b774-nmmh4                 1/1     Running   0          127m
+boutique      checkoutservice-78b6bcbcc7-fsmmj            1/1     Running   0          127m
+boutique      currencyservice-5c8cbd54c5-w47bl            1/1     Running   0          127m
+boutique      emailservice-6d9cfd9449-7vpq6               1/1     Running   0          127m
+boutique      frontend-58b4dc4d4d-9r5jm                   1/1     Running   0          127m
+boutique      paymentservice-7ff65ff5c7-pvj2d             1/1     Running   0          127m
+boutique      productcatalogservice-67944c9df7-7jtzc      1/1     Running   0          127m
+boutique      recommendationservice-5887f9f797-tdhlw      1/1     Running   0          127m
+boutique      redis-cart-788fbddc7-7s52r                  1/1     Running   0          127m
+boutique      shippingservice-7ff767d68f-dnpxq            1/1     Running   0          127m
+chaos-mesh    chaos-controller-manager-6f6d67cb9d-4ckjt   1/1     Running   0          156m
+chaos-mesh    chaos-controller-manager-6f6d67cb9d-qcwbq   1/1     Running   0          156m
+chaos-mesh    chaos-controller-manager-6f6d67cb9d-xtjgn   1/1     Running   0          156m
+chaos-mesh    chaos-daemon-vzhd2                          1/1     Running   0          162m
+chaos-mesh    chaos-dashboard-5db97f969f-7glgw            1/1     Running   0          156m
+chaos-mesh    chaos-dns-server-6d8fd4b8b5-jmbhn           1/1     Running   0          156m
+kube-system   coredns-86b5bc8f5b-4n8zg                    1/1     Running   0          156m
+kube-system   local-path-provisioner-77b9867795-mvdvs     1/1     Running   0          156m
+kube-system   metrics-server-6dc596dfb8-6gzzx             1/1     Running   0          156m

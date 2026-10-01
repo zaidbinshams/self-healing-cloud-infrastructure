@@ -1,0 +1,20 @@
+[PASS] contract.yaml valid: namespace=boutique
+[PASS] cluster.env sourced: OB_VERSION=v0.10.7
+[PASS] .gitignore covers secrets/data: ok
+[PASS] kubeconfigs present, 0600, untracked: ok
+[PASS] single node Ready: nodes=1 ready=['zaid-laptop-0-u'] kubelet=v1.36.4+k3s1
+[PASS] traefik disabled: absent
+[PASS] metrics-server available: metrics.k8s.io Available
+[PASS] namespace boutique chaos-inject label+annotation: label=enabled annotation=enabled
+[PASS] 11 golden deployments available: 11 deployments, all rollout-complete at golden replicas
+[PASS] frontend-external NodePort 30080: type=NodePort nodePorts=[30080]
+[PASS] frontend HTTP 200: GET http://192.168.137.10:30080/ -> 200 in 94 ms
+[PASS] agent RBAC least-privilege: 18 access cases match
+[PASS] controller RBAC least-privilege: 19 access cases match
+[PASS] golden_live.json matches live: 11 templates match (git c1b237e1)
+[PASS] golden_live.json committed: tracked and clean
+[PASS] A idle memory < 10 GiB: node working set 6.68 GiB (metrics-server)
+[PASS] A-B clock skew < 1000 ms: skew=-542 ± 6 ms, B wall-clock step during probe=0 ms
+[PASS] LAN RTT p99 < 800 ms: n=200 lost=0 median=86.30 p99=187.00 max=261.00 ms
+
+preflight m1: 18/18 PASS

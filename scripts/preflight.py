@@ -41,14 +41,18 @@ from scripts._kube import (
     template_hash,
 )
 
-# --- Gate thresholds (defined in PLAN.md M1 / CLAUDE.md §2, §8.10; not tunables) ---
-LAN_RTT_P99_MAX_MS = 2.0          # PLAN.md Exit Gate M1
+# --- Gate thresholds ---
+# ENVIRONMENT OVERRIDE (human-approved 2026-10-01): A and B are linked over a wireless
+# hotspot and A runs other workloads, so the three thresholds marked [override] are relaxed
+# from the documented gates (PLAN.md M1: RTT p99 < 2 ms, idle used < 5 GiB; CLAUDE.md §8.10:
+# skew < 200 ms). Results under these values are NOT comparable to the documented design.
+LAN_RTT_P99_MAX_MS = 800.0        # [override] documented gate: 2.0 (PLAN.md Exit Gate M1)
 LAN_PING_COUNT = 200              # PLAN.md: ping -c 200
 LAN_PING_INTERVAL_S = 0.2         # smallest interval allowed without root
 LAN_PING_PER_REPLY_TIMEOUT_S = 1
-CLOCK_SKEW_MAX_MS = 200.0         # CLAUDE.md §8.10
+CLOCK_SKEW_MAX_MS = 1000.0        # [override] documented gate: 200.0 (CLAUDE.md §8.10)
 CLOCK_PROBE_BUDGET_S = 4.0        # time spent sampling server Date headers
-A_IDLE_MEMORY_MAX_BYTES = 5 * 1024**3   # PLAN.md M1: idle "used" < 5 GiB
+A_IDLE_MEMORY_MAX_BYTES = 10 * 1024**3  # [override] documented gate: 5 GiB (PLAN.md M1 idle "used")
 FRONTEND_TIMEOUT_S = (2.0, 5.0)
 FRONTEND_NODE_PORT = 30080
 REQUIRED_ENV = ("A_IP", "NS", "KUBE_ADMIN", "KUBE_AGENT", "KUBE_CTRL", "FRONTEND_URL", "OB_VERSION")
@@ -329,11 +333,11 @@ def check_lan_rtt(ctx: Ctx) -> CheckResult:
     )
     rtts = sorted(float(m) for m in re.findall(r"time=([\d.]+) ms", proc.stdout))
     if not rtts:
-        return CheckResult("LAN RTT p99 < 2 ms", False, f"no replies from {a_ip}")
+        return CheckResult(f"LAN RTT p99 < {LAN_RTT_P99_MAX_MS:g} ms", False, f"no replies from {a_ip}")
     p99 = rtts[max(0, math.ceil(0.99 * len(rtts)) - 1)]
     lost = LAN_PING_COUNT - len(rtts)
     ok = p99 < LAN_RTT_P99_MAX_MS and lost == 0
-    return CheckResult("LAN RTT p99 < 2 ms", ok,
+    return CheckResult(f"LAN RTT p99 < {LAN_RTT_P99_MAX_MS:g} ms", ok,
                        f"n={len(rtts)} lost={lost} median={rtts[len(rtts) // 2]:.2f} p99={p99:.2f} max={rtts[-1]:.2f} ms")
 
 
@@ -371,14 +375,14 @@ def check_clock_skew(ctx: Ctx) -> CheckResult:
             if best is None or est[1] < best[1]:
                 best = est
     if best is None:
-        return CheckResult("A-B clock skew < 200 ms", False, f"no Date transition in {len(samples)} samples")
+        return CheckResult(f"A-B clock skew < {CLOCK_SKEW_MAX_MS:g} ms", False, f"no Date transition in {len(samples)} samples")
     skew_ms, unc_ms = best[0] * 1000, best[1] * 1000
     worst_ms = abs(skew_ms) + unc_ms + step_ms
     ok = worst_ms < CLOCK_SKEW_MAX_MS
     detail = f"skew={skew_ms:+.0f} ± {unc_ms:.0f} ms, B wall-clock step during probe={step_ms:.0f} ms"
     if not ok:
         detail += " (exceeds)" if abs(skew_ms) - unc_ms >= CLOCK_SKEW_MAX_MS else " (cannot prove < limit)"
-    return CheckResult("A-B clock skew < 200 ms", ok, detail)
+    return CheckResult(f"A-B clock skew < {CLOCK_SKEW_MAX_MS:g} ms", ok, detail)
 
 
 def check_a_idle_memory(ctx: Ctx) -> CheckResult:
@@ -387,7 +391,7 @@ def check_a_idle_memory(ctx: Ctx) -> CheckResult:
     items = usage["items"]
     used = sum(int(parse_quantity(i["usage"]["memory"])) for i in items)
     gib = used / 1024**3
-    return CheckResult("A idle memory < 5 GiB", used < A_IDLE_MEMORY_MAX_BYTES,
+    return CheckResult(f"A idle memory < {A_IDLE_MEMORY_MAX_BYTES / 1024**3:g} GiB", used < A_IDLE_MEMORY_MAX_BYTES,
                        f"node working set {gib:.2f} GiB (metrics-server)")
 
 

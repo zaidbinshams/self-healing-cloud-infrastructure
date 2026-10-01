@@ -11,7 +11,7 @@
 2. **Two machines, fixed roles.**
    - **Machine A**: cluster node. Headless Linux, 12 GB RAM. Runs K3s, Online Boutique, Chaos Mesh, Prometheus.
    - **Machine B**: execution node. 10 GB RAM. Runs Locust, the Gymnasium env, the fault injector, the runbook, the PER-iSAC agent, evaluation, and Claude Code.
-   - The machines are connected by **wired Ethernet**.
+   - Design: the machines are connected by **wired Ethernet**. Deployed: a **wireless hotspot**, with environment overrides (§0.1).
 3. **Where commands run.** Every command runs on **Machine B** from the repo root, unless it is marked **[A]**.
 4. **Environment variables.** Every command assumes `source config/cluster.env` has been run.
 5. **Wall-clock time on the real cluster is the scarcest resource.** Never start a run longer than 30 minutes without:
@@ -19,6 +19,18 @@
    - per-tick transition persistence,
    - checkpointing.
 6. **Credentials never enter git.** `config/kube/` is in `.gitignore`.
+
+### 0.1 Environment Overrides (Human-Approved 2026-10-01)
+
+A and B share a wireless hotspot, and A runs other workloads at the same time. M1 preflight therefore uses relaxed thresholds. Details and consequences are in `CLAUDE.md` §2 "Environment Overrides".
+
+| Check | Design gate | Override |
+|---|---|---|
+| LAN RTT p99 | < 2 ms | < 800 ms |
+| A–B clock skew | < 200 ms | < 1000 ms |
+| A idle memory | < 5 GiB | < 10 GiB |
+
+No other gate is relaxed.
 
 ### `config/cluster.env` (create first, fill in real values)
 
@@ -167,8 +179,8 @@ kubectl --kubeconfig $KUBE_AGENT auth can-i patch deployments/scale -n $NS # yes
 kubectl --kubeconfig $KUBE_AGENT auth can-i delete pods -n $NS            # no
 kubectl --kubeconfig $KUBE_AGENT auth can-i list pods -n kube-system      # no
 kubectl --kubeconfig $KUBE_CTRL  auth can-i create stresschaos.chaos-mesh.org -n $NS   # yes
-chronyc tracking | grep "System time"                                     # run on A and B: |offset| < 0.05 s
-ssh user@$A_IP free -h                                                    # idle "used" < 5 GiB
+chronyc tracking | grep "System time"                                     # run on A and B: |offset| < 0.05 s (design; preflight checks A-B skew < 1000 ms under §0.1)
+ssh user@$A_IP free -h                                                    # idle "used" < 5 GiB (design; < 10 GiB under §0.1)
 python -m scripts.preflight --stage m1                                    # all PASS
 ```
 
@@ -176,7 +188,7 @@ python -m scripts.preflight --stage m1                                    # all 
 
 - `preflight --stage m1` is all PASS.
 - `config/golden_live.json` is committed.
-- LAN round-trip time p99 is under 2 ms (`ping -c 200 $A_IP`).
+- LAN round-trip time p99 is under 2 ms (`ping -c 200 $A_IP`). Under the §0.1 override: under 800 ms.
 
 ---
 
