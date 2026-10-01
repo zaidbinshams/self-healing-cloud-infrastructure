@@ -1,0 +1,17 @@
+# Cluster credentials & secrets
+config/kube/
+*.kubeconfig
+
+# Environment and runtime data
+.venv/
+__pycache__/
+*.pyc
+data/
+data/runs/
+data/eval/
+.locust/
+
+# OS & IDE artifacts
+.vscode/
+.idea/
+*.swp
