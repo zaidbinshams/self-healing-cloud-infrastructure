@@ -1,0 +1,76 @@
+cluster:
+  namespace: boutique
+  managed: [frontend, cartservice, currencyservice, productcatalogservice]   # fixed order = obs order
+clock:
+  tick_s: 20
+  collect_deadline_s: 3.0
+  update_budget_s: 1.0
+  inflight_timeout_s: 100
+  late_frac: 0.5                    # step() entered after T_k + late_frac*tick_s → flag "late"
+telemetry:
+  scrape_interval_s: 5
+  rate_window: "30s"
+  prom_timeout_s: [1.0, 2.5]
+  k8s_timeout_s: [2, 5]
+  locust_timeout_s: [0.5, 1.5]
+  locf_max_ticks: 2
+  stale_truncate_ticks: 3
+locust:
+  wait_s: [0.5, 1.5]
+  request_timeout_s: 5
+  cpu_cores: [0, 1]
+sla:
+  e_sla: 0.01
+  e_max: 0.20
+  recovery_ticks: 3
+  l_sla_factor: 1.5                 # L_SLA = ceil_10ms(1.5 * q95(steady tick-P99)) → calibration.json
+episode:
+  lead_in_ticks: [2, 5]
+  fault_max_ticks: 18
+  null_extra_ticks: 6
+  fault_probs: {F1: 0.22, F2: 0.22, F3: 0.22, F4: 0.22, NULL: 0.12}
+  f1_latency: ["300ms", "600ms", "1s"]
+  f2_targets: [currencyservice, cartservice]
+  f2_workers: [1, 2]
+  f3_targets: [cartservice, currencyservice]
+  f4_multiplier: [2.5, 3.0]
+replicas:
+  base: {frontend: 1, cartservice: 1, currencyservice: 1, productcatalogservice: 1}
+  max:  {frontend: 3, cartservice: 2, currencyservice: 2, productcatalogservice: 1}
+golden_overrides: {}                # e.g. {currencyservice: {cpu_limit: "300m"}} only if F4 calibration requires it
+reward:
+  action_cost: {NOOP: 0.0, SCALE: 0.02, RESTART: 0.04, RESTORE: 0.04}
+  w_replica: 0.05
+  replica_denominator: 4            # Σ(max - base) = 2+1+1+0
+rl:
+  gamma: 0.93
+  n_step: 3
+  tau: 0.005
+  hidden: [256, 256]
+  lr_actor: 3.0e-4
+  lr_critic: 3.0e-4
+  lr_alpha: 3.0e-4
+  batch_size: 128
+  buffer_size: 50000
+  updates_per_tick: 4
+  alpha_init: 0.1
+  target_entropy_frac: 0.4
+  offline_warmstart_steps: 2000
+  torch_threads: 2
+per:
+  alpha: 0.5
+  beta_start: 0.4
+  beta_end: 1.0
+  beta_anneal_grad_steps: 15000
+  eps: 1.0e-3
+  priority_cap: 1.0
+runbook:
+  throttle_threshold: 0.40
+  debounce_ticks: 2
+  change_window_ticks: 9
+  surge_rps_factor: 1.5
+  scaleback_rps_factor: 1.2
+  scaleback_healthy_ticks: 6
+  restart_cooldown_ticks: 6
+  warmstart_epsilon: 0.25
+  warmstart_episodes: 120

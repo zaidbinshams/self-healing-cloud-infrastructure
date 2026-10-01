@@ -1,0 +1,9 @@
+# Pinned. Do not upgrade mid-project (CLAUDE.md §4.5.4).
+# torch is installed separately (CPU wheel):
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu   # installed: 2.14.1+cpu
+kubernetes==36.0.3
+PyYAML==6.0.3
+requests==2.34.2
+urllib3==2.8.0
+pytest==9.1.1
+ruff==0.16.9

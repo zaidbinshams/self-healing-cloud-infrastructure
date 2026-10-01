@@ -1,0 +1,1094 @@
+{
+  "captured_at": 1790876348.6285655,
+  "captured_at_iso": "2026-10-01T17:39:08.628566+00:00",
+  "contract_sha256": "17e76d2565e51bffbd84545185113e0042bbe15f412225a009fe181a837f98e1",
+  "deployments": {
+    "adservice": {
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "adservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "9555"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/adservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 9555,
+                  "service": ""
+                },
+                "initialDelaySeconds": 20,
+                "periodSeconds": 15,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 9555,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 9555,
+                  "service": ""
+                },
+                "initialDelaySeconds": 20,
+                "periodSeconds": 15,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "300m",
+                  "memory": "300Mi"
+                },
+                "requests": {
+                  "cpu": "200m",
+                  "memory": "180Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "adservice",
+          "serviceAccountName": "adservice",
+          "terminationGracePeriodSeconds": 5
+        }
+      },
+      "template_hash": "80d112a690f9733d228ddd18e9ee69eb7029cfc4c827674eb1de9b469a50770f"
+    },
+    "cartservice": {
+      "limits": {
+        "cpu_cores": 0.3,
+        "memory_bytes": 134217728
+      },
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "cartservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "REDIS_ADDR",
+                  "value": "redis-cart:6379"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/cartservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 7070,
+                  "service": ""
+                },
+                "initialDelaySeconds": 15,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 7070,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 7070,
+                  "service": ""
+                },
+                "initialDelaySeconds": 15,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "300m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "200m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "cartservice",
+          "serviceAccountName": "cartservice",
+          "terminationGracePeriodSeconds": 5
+        }
+      },
+      "template_hash": "73fb1d53af5b4ac6e96b9017df1c280c6e6c4b5afabd76e4c2c7ea38b91c237d"
+    },
+    "checkoutservice": {
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "checkoutservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "5050"
+                },
+                {
+                  "name": "PRODUCT_CATALOG_SERVICE_ADDR",
+                  "value": "productcatalogservice:3550"
+                },
+                {
+                  "name": "SHIPPING_SERVICE_ADDR",
+                  "value": "shippingservice:50051"
+                },
+                {
+                  "name": "PAYMENT_SERVICE_ADDR",
+                  "value": "paymentservice:50051"
+                },
+                {
+                  "name": "EMAIL_SERVICE_ADDR",
+                  "value": "emailservice:5000"
+                },
+                {
+                  "name": "CURRENCY_SERVICE_ADDR",
+                  "value": "currencyservice:7000"
+                },
+                {
+                  "name": "CART_SERVICE_ADDR",
+                  "value": "cartservice:7070"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/checkoutservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 5050,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 5050,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 5050,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "checkoutservice",
+          "serviceAccountName": "checkoutservice",
+          "terminationGracePeriodSeconds": 30
+        }
+      },
+      "template_hash": "dacc0b4a50a5f975815299029177382187e0d0672058cfb2fd19f8b9628596c8"
+    },
+    "currencyservice": {
+      "limits": {
+        "cpu_cores": 0.2,
+        "memory_bytes": 134217728
+      },
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "currencyservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "7000"
+                },
+                {
+                  "name": "DISABLE_PROFILER",
+                  "value": "1"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/currencyservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 7000,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 7000,
+                  "name": "grpc",
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 7000,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "currencyservice",
+          "serviceAccountName": "currencyservice",
+          "terminationGracePeriodSeconds": 5
+        }
+      },
+      "template_hash": "22f856353109d6c04b3bb4fbdb565d8d64ab1b2673e704cc9d9af382bdff8cf6"
+    },
+    "emailservice": {
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "emailservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "8080"
+                },
+                {
+                  "name": "DISABLE_PROFILER",
+                  "value": "1"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/emailservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 8080,
+                  "service": ""
+                },
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 8080,
+                  "service": ""
+                },
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "emailservice",
+          "serviceAccountName": "emailservice",
+          "terminationGracePeriodSeconds": 5
+        }
+      },
+      "template_hash": "01af15e38a828d08be37c2bbbba5b905a451b1f4f6d5da369e1e739895e31c24"
+    },
+    "frontend": {
+      "limits": {
+        "cpu_cores": 0.2,
+        "memory_bytes": 134217728
+      },
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "annotations": {
+            "sidecar.istio.io/rewriteAppHTTPProbers": "true"
+          },
+          "labels": {
+            "app": "frontend"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "8080"
+                },
+                {
+                  "name": "PRODUCT_CATALOG_SERVICE_ADDR",
+                  "value": "productcatalogservice:3550"
+                },
+                {
+                  "name": "CURRENCY_SERVICE_ADDR",
+                  "value": "currencyservice:7000"
+                },
+                {
+                  "name": "CART_SERVICE_ADDR",
+                  "value": "cartservice:7070"
+                },
+                {
+                  "name": "RECOMMENDATION_SERVICE_ADDR",
+                  "value": "recommendationservice:8080"
+                },
+                {
+                  "name": "SHIPPING_SERVICE_ADDR",
+                  "value": "shippingservice:50051"
+                },
+                {
+                  "name": "CHECKOUT_SERVICE_ADDR",
+                  "value": "checkoutservice:5050"
+                },
+                {
+                  "name": "AD_SERVICE_ADDR",
+                  "value": "adservice:9555"
+                },
+                {
+                  "name": "SHOPPING_ASSISTANT_SERVICE_ADDR",
+                  "value": "shoppingassistantservice:80"
+                },
+                {
+                  "name": "ENABLE_PROFILER",
+                  "value": "0"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/frontend:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "httpGet": {
+                  "httpHeaders": [
+                    {
+                      "name": "Cookie",
+                      "value": "shop_session-id=x-liveness-probe"
+                    }
+                  ],
+                  "path": "/_healthz",
+                  "port": 8080,
+                  "scheme": "HTTP"
+                },
+                "initialDelaySeconds": 10,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "httpGet": {
+                  "httpHeaders": [
+                    {
+                      "name": "Cookie",
+                      "value": "shop_session-id=x-readiness-probe"
+                    }
+                  ],
+                  "path": "/_healthz",
+                  "port": 8080,
+                  "scheme": "HTTP"
+                },
+                "initialDelaySeconds": 10,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "frontend",
+          "serviceAccountName": "frontend",
+          "terminationGracePeriodSeconds": 30
+        }
+      },
+      "template_hash": "666a551e08055c98643723a3dff6ba273f6b045769e8d29a6fde2d2d03e7d37e"
+    },
+    "paymentservice": {
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "paymentservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "50051"
+                },
+                {
+                  "name": "DISABLE_PROFILER",
+                  "value": "1"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/paymentservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 50051,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 50051,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 50051,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "paymentservice",
+          "serviceAccountName": "paymentservice",
+          "terminationGracePeriodSeconds": 5
+        }
+      },
+      "template_hash": "e9b327d8b8cb8b46647e409f8f964bfe308c2b9b1dd8a228539d139b09d7efd6"
+    },
+    "productcatalogservice": {
+      "limits": {
+        "cpu_cores": 0.2,
+        "memory_bytes": 134217728
+      },
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "productcatalogservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "3550"
+                },
+                {
+                  "name": "DISABLE_PROFILER",
+                  "value": "1"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/productcatalogservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 3550,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 3550,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 3550,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "productcatalogservice",
+          "serviceAccountName": "productcatalogservice",
+          "terminationGracePeriodSeconds": 5
+        }
+      },
+      "template_hash": "6445dcab32cde2775b7ecb9519f3d2c7cc72efb9a18e8739c5f211d4ea3c4f6b"
+    },
+    "recommendationservice": {
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "recommendationservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "8080"
+                },
+                {
+                  "name": "PRODUCT_CATALOG_SERVICE_ADDR",
+                  "value": "productcatalogservice:3550"
+                },
+                {
+                  "name": "DISABLE_PROFILER",
+                  "value": "1"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/recommendationservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 8080,
+                  "service": ""
+                },
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 8080,
+                  "service": ""
+                },
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "450Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "220Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "recommendationservice",
+          "serviceAccountName": "recommendationservice",
+          "terminationGracePeriodSeconds": 5
+        }
+      },
+      "template_hash": "7d28c8727d29e95a0b79852d3e059c499f2eaa386f7e017a77db231b75b9e165"
+    },
+    "redis-cart": {
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "redis-cart"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "image": "redis:alpine",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "tcpSocket": {
+                  "port": 6379
+                },
+                "timeoutSeconds": 1
+              },
+              "name": "redis",
+              "ports": [
+                {
+                  "containerPort": 6379,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "tcpSocket": {
+                  "port": 6379
+                },
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "125m",
+                  "memory": "256Mi"
+                },
+                "requests": {
+                  "cpu": "70m",
+                  "memory": "200Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File",
+              "volumeMounts": [
+                {
+                  "mountPath": "/data",
+                  "name": "redis-data"
+                }
+              ]
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "terminationGracePeriodSeconds": 30,
+          "volumes": [
+            {
+              "emptyDir": {},
+              "name": "redis-data"
+            }
+          ]
+        }
+      },
+      "template_hash": "ee3a50d9650fa42c7c07ab0126e9aa5e5014fe075f943b8e0544ea4c5525cc51"
+    },
+    "shippingservice": {
+      "replicas": 1,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "shippingservice"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "PORT",
+                  "value": "50051"
+                },
+                {
+                  "name": "DISABLE_PROFILER",
+                  "value": "1"
+                }
+              ],
+              "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/shippingservice:v0.10.7",
+              "imagePullPolicy": "IfNotPresent",
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 50051,
+                  "service": ""
+                },
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "name": "server",
+              "ports": [
+                {
+                  "containerPort": 50051,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "grpc": {
+                  "port": 50051,
+                  "service": ""
+                },
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "200m",
+                  "memory": "128Mi"
+                },
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "64Mi"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "privileged": false,
+                "readOnlyRootFilesystem": true
+              },
+              "terminationMessagePath": "/dev/termination-log",
+              "terminationMessagePolicy": "File"
+            }
+          ],
+          "dnsPolicy": "ClusterFirst",
+          "restartPolicy": "Always",
+          "schedulerName": "default-scheduler",
+          "securityContext": {
+            "fsGroup": 1000,
+            "runAsGroup": 1000,
+            "runAsNonRoot": true,
+            "runAsUser": 1000
+          },
+          "serviceAccount": "shippingservice",
+          "serviceAccountName": "shippingservice",
+          "terminationGracePeriodSeconds": 30
+        }
+      },
+      "template_hash": "b156feecc3120f026adb8b671a2cb0ba9cee1159d2f0e4047cccda764b0ee0a3"
+    }
+  },
+  "git_sha": "c1b237e195638606ea79d72fb9bdacd880bfeebc",
+  "golden_yaml_sha256": "f0ff0a3e28efacacffbf180dd2cfc8722bc1d024e9e687adc4f51313794e7269",
+  "managed": [
+    "frontend",
+    "cartservice",
+    "currencyservice",
+    "productcatalogservice"
+  ],
+  "namespace": "boutique",
+  "ob_version": "v0.10.7",
+  "template_hash_algo": "sha256(canonical_json(template minus restartedAt annotation))"
+}

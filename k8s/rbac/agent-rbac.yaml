@@ -1,0 +1,46 @@
+# agent-sa: env/k8s_actions.py executor + telemetry reads (CLAUDE.md §2).
+# Can patch/scale deployments in `boutique`; can NEVER delete pods.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-sa
+  namespace: boutique
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agent-sa-token
+  namespace: boutique
+  annotations:
+    kubernetes.io/service-account.name: agent-sa
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-role
+  namespace: boutique
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-rolebinding
+  namespace: boutique
+subjects:
+  - kind: ServiceAccount
+    name: agent-sa
+    namespace: boutique
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-role
