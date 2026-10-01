@@ -28,7 +28,7 @@ The scientific value comes entirely from **real system physics.** Anything that 
         LAN link (design: wired, RTT p99 < 2 ms; see Environment Overrides below)
 ┌───────────────────────────────┐            ┌──────────────────────────────────────────┐
 │ MACHINE A — cluster (12 GB)   │            │ MACHINE B — execution (10 GB)             │
-│ headless Linux, swap OFF      │            │ clock authority (chrony)                  │
+│ headless Linux, swap OFF      │            │ timestamp authority (clock synced to A)   │
 │                               │            │                                           │
 │ K3s (traefik disabled)        │◄── :6443 ──┤ env/ action executor   (agent.kubeconfig) │
 │  ├ ns boutique: Online        │◄── :6443 ──┤ env/ injector + reset  (controller.kubecfg)│
@@ -60,6 +60,7 @@ The other services run but are outside the agent's state and action space.
 - All wall-clock timestamps are `time.time()` on B.
 - All scheduling uses `time.monotonic()` on B.
 - Prometheus queries pass an explicit `time=` parameter taken from B's clock.
+- In the deployed environment B's clock is disciplined to A's NTP server (see "Clock-sync topology" below). B still stamps and schedules everything; only the time *source* is A.
 
 **Three kubeconfigs:**
 
@@ -85,6 +86,20 @@ Consequences to keep in mind:
 - Prometheus `time=` evaluation may be off by up to 5% of a tick. Expect more stale and imputed telemetry (G2).
 - Decision latency (G1) has less headroom against the 3.0 s collection deadline.
 - Results must be reported as obtained under this environment.
+
+#### Clock-sync topology (Human-Approved 2026-10-01)
+
+The design has B as the chrony time source. In the deployed environment **A serves time and B follows**: B is WSL2 behind NAT, so A cannot reach it on udp/123.
+
+- **A:** chrony serves NTP to `192.168.137.0/24` (`k8s/k3s/chrony-server.sh`, `local stratum 10 orphan`).
+- **Windows host of B:** w32time uses A as its only peer (`scripts/w32time-follow-a.ps1`). Settings: 64 s poll, `UpdateInterval=100`, `FrequencyCorrectRate=2`, `MaxAllowedPhaseOffset=1`.
+  - With default `UpdateInterval`, w32time overshot A by about 0.6 s. Do not drop these settings.
+- **B (WSL2):** the kernel clock is owned by WSL's system VM. Its own chronyd follows the Windows clock through Hyper-V PTP (PHC0). B therefore tracks A through Windows.
+- **B's chronyd** (`scripts/chrony-client.sh`) runs with `-x` under WSL. It is a passive A–B offset monitor: `chronyc -h 127.0.0.1 sources`. Never set `SYNC_IN_CONTAINER=yes`; two daemons would fight over one clock.
+- **Verified 2026-10-01:**
+  - 20 min NTP probe B→A: mean +6.8 ms, sd 3.1 ms, max |offset| 13.8 ms, no trend.
+  - `preflight --stage m1` skew: −1 ± 6 ms, within the 200 ms design gate.
+- **If skew grows:** check `w32tm /query /status` on Windows first, then `wsl --shutdown`.
 
 These are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
 
@@ -675,7 +690,7 @@ Fields:
 7. **HPA and zero replicas.** HPA does not act on a deployment at zero replicas, so F3 stays unhealed in the `k8s_hpa` baseline. This is correct behavior, not a bug.
 8. **Locust headless mode** has no web UI, and therefore no `/swarm` or `/tick` routes. Run with the web UI bound to 127.0.0.1 and autostart (or a one-time `/swarm` at launch), plus the custom `/tick` route.
 9. **B CPU contention.** When gradient updates starve Locust's event loop, measured P99 inflates. Keep Locust on cores 0–1 and torch on the remaining cores with 2 threads.
-10. **Clock skew.** Skew between A and B shifts Prometheus `time=` evaluation. Preflight fails if skew exceeds 200 ms by design; the current environment override allows 1000 ms (§2).
+10. **Clock skew.** Skew between A and B shifts Prometheus `time=` evaluation. Preflight fails if skew exceeds 200 ms by design; the current environment override allows 1000 ms (§2). Under WSL2, B's clock is the Windows host clock; fix skew on Windows (w32time → A), not inside WSL (§2 "Clock-sync topology").
 11. **Masking NaN.** The masked-entropy 0 · log 0 NaN (§5.12 rule 1) and an unfiltered α loss (§5.12 rule 5) are the two most likely causes of a "mysteriously diverging" agent.
 
 ---

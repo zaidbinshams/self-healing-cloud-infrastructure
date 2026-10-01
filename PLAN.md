@@ -32,6 +32,8 @@ A and B share a wireless hotspot, and A runs other workloads at the same time. M
 
 No other gate is relaxed.
 
+**Clock-sync topology (human-approved 2026-10-01).** A is the NTP server and B follows it through the Windows host's w32time. B's `time.time()` remains the timestamp source. Measured skew is about 7 ms, inside the 200 ms design gate. Setup and rationale: `CLAUDE.md` §2 "Clock-sync topology".
+
 ### `config/cluster.env` (create first, fill in real values)
 
 ```bash
@@ -113,6 +115,9 @@ Have the following in place:
 | `config/cluster.env` | LAN addresses, kubeconfig paths, pinned versions |
 | `.gitignore` | Must contain `config/kube/`, `data/`, `.venv/` |
 | `k8s/k3s/install-server.sh` **[A]** | Swap off, chrony, K3s install with `--disable traefik --tls-san $A_IP` |
+| `k8s/k3s/chrony-server.sh` **[A]** | chrony on A serves NTP to the hotspot subnet (clock-sync override, §0.1) |
+| `scripts/w32time-follow-a.ps1` **[B, Windows]** | Windows host w32time follows A; WSL2 inherits it via PHC0 |
+| `scripts/chrony-client.sh` **[B]** | chrony on B following A; passive A–B offset monitor under WSL2 (`-x`) |
 | `k8s/boutique/upstream/kubernetes-manifests.yaml` | Unmodified upstream release manifest (pinned `OB_VERSION`) |
 | `k8s/boutique/build_golden.py` | Strips `loadgenerator`; converts `frontend-external` to NodePort 30080; sets `replicas: 1`; applies limit overrides from `contract.yaml` |
 | `k8s/boutique/golden.yaml` | Generated. **Never hand-edit.** |
@@ -179,7 +184,8 @@ kubectl --kubeconfig $KUBE_AGENT auth can-i patch deployments/scale -n $NS # yes
 kubectl --kubeconfig $KUBE_AGENT auth can-i delete pods -n $NS            # no
 kubectl --kubeconfig $KUBE_AGENT auth can-i list pods -n kube-system      # no
 kubectl --kubeconfig $KUBE_CTRL  auth can-i create stresschaos.chaos-mesh.org -n $NS   # yes
-chronyc tracking | grep "System time"                                     # run on A and B: |offset| < 0.05 s (design; preflight checks A-B skew < 1000 ms under §0.1)
+chronyc tracking | grep "System time"                                     # on A: |offset| < 0.05 s
+chronyc -h 127.0.0.1 -n sources                                          # on B: A (^*) offset < 50 ms (passive monitor under WSL2)
 ssh user@$A_IP free -h                                                    # idle "used" < 5 GiB (design; < 10 GiB under §0.1)
 python -m scripts.preflight --stage m1                                    # all PASS
 ```
