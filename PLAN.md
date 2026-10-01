@@ -22,17 +22,19 @@
 
 ### 0.1 Environment Overrides (Human-Approved 2026-10-01)
 
-A and B share a wireless hotspot, and A runs other workloads at the same time. M1 preflight therefore uses relaxed thresholds. Details and consequences are in `CLAUDE.md` §2 "Environment Overrides".
+A and B share a wireless hotspot, and A runs other workloads at the same time. Preflight therefore uses relaxed thresholds. Details and consequences are in `CLAUDE.md` §2 "Environment Overrides".
 
 | Check | Design gate | Override |
 |---|---|---|
 | LAN RTT p99 | < 2 ms | < 800 ms |
-| A–B clock skew | < 200 ms | < 1000 ms |
 | A idle memory | < 5 GiB | < 10 GiB |
+| A memory under load (M2) | < 8 GiB | < 12 GiB |
+
+A–B clock skew uses the **200 ms design gate**. Its 1000 ms override was retired on 2026-10-01.
 
 No other gate is relaxed.
 
-**Clock-sync topology (human-approved 2026-10-01).** A is the NTP server and B follows it through the Windows host's w32time. B's `time.time()` remains the timestamp source. Measured skew is about 7 ms, inside the 200 ms design gate. Setup and rationale: `CLAUDE.md` §2 "Clock-sync topology".
+**Clock-sync topology (human-approved 2026-10-01).** A is the NTP server and B follows it through the Windows host's w32time. B's `time.time()` remains the timestamp source. Measured skew is about 7 ms. Setup and rationale: `CLAUDE.md` §2 "Clock-sync topology".
 
 ### `config/cluster.env` (create first, fill in real values)
 
@@ -251,7 +253,7 @@ sleep 40 && python -m scripts.promq --query thr --deployment currencyservice   #
 kubectl --kubeconfig $KUBE_ADMIN -n $NS delete stresschaos smoke-stress-currency
 
 # Resource headroom under load
-ssh user@$A_IP free -h                                                    # "used" < 8 GiB
+ssh user@$A_IP free -h                                                    # "used" < 8 GiB (design; < 12 GiB under §0.1)
 kubectl --kubeconfig $KUBE_ADMIN top pod -n monitoring                    # prometheus < 1.2Gi
 python -m scripts.preflight --stage m2                                    # all PASS (incl. only `boutique` annotated for chaos)
 ```

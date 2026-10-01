@@ -79,12 +79,14 @@ The deployed testbed differs from the design above. A and B are linked over a **
 | Check | Design gate | Override |
 |---|---|---|
 | LAN RTT p99 (`ping -c 200`) | < 2 ms | **< 800 ms** |
-| A–B clock skew | < 200 ms | **< 1000 ms** |
 | Machine A idle memory | < 5 GiB | **< 10 GiB** |
+| Machine A memory under load (M2) | < 8 GiB | **< 12 GiB** (approved 2026-10-01; A idles at ~8.8 GiB) |
+
+The A–B clock-skew gate is back at its **200 ms design value**. Its earlier 1000 ms override was retired on 2026-10-01 after the clock fix ("Clock-sync topology" below).
 
 Consequences to keep in mind:
-- Prometheus `time=` evaluation may be off by up to 5% of a tick. Expect more stale and imputed telemetry (G2).
-- Decision latency (G1) has less headroom against the 3.0 s collection deadline.
+- Decision latency (G1) has less headroom against the 3.0 s collection deadline (RTT).
+- A has less memory headroom: Online Boutique, Prometheus and Chaos Mesh share it with unrelated workloads. Watch for OOM kills and evictions.
 - Results must be reported as obtained under this environment.
 
 #### Clock-sync topology (Human-Approved 2026-10-01)
@@ -690,7 +692,7 @@ Fields:
 7. **HPA and zero replicas.** HPA does not act on a deployment at zero replicas, so F3 stays unhealed in the `k8s_hpa` baseline. This is correct behavior, not a bug.
 8. **Locust headless mode** has no web UI, and therefore no `/swarm` or `/tick` routes. Run with the web UI bound to 127.0.0.1 and autostart (or a one-time `/swarm` at launch), plus the custom `/tick` route.
 9. **B CPU contention.** When gradient updates starve Locust's event loop, measured P99 inflates. Keep Locust on cores 0–1 and torch on the remaining cores with 2 threads.
-10. **Clock skew.** Skew between A and B shifts Prometheus `time=` evaluation. Preflight fails if skew exceeds 200 ms by design; the current environment override allows 1000 ms (§2). Under WSL2, B's clock is the Windows host clock; fix skew on Windows (w32time → A), not inside WSL (§2 "Clock-sync topology").
+10. **Clock skew.** Skew between A and B shifts Prometheus `time=` evaluation. Preflight fails if skew exceeds 200 ms (design gate; the earlier 1000 ms override was retired 2026-10-01). Under WSL2, B's clock is the Windows host clock; fix skew on Windows (w32time → A), not inside WSL (§2 "Clock-sync topology").
 11. **Masking NaN.** The masked-entropy 0 · log 0 NaN (§5.12 rule 1) and an unfiltered α loss (§5.12 rule 5) are the two most likely causes of a "mysteriously diverging" agent.
 
 ---
