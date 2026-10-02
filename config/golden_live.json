@@ -1,7 +1,7 @@
 {
-  "captured_at": 1790943275.9522564,
-  "captured_at_iso": "2026-10-02T12:14:35.952256+00:00",
-  "contract_sha256": "e4e9895d00828b744a7650caa82c449898c2231c629b67d5b70659cadb978854",
+  "captured_at": 1790948066.9592612,
+  "captured_at_iso": "2026-10-02T13:34:26.959261+00:00",
+  "contract_sha256": "aa6e2e55b9cf81320c3354a12e8d73f55c7951eb2fa75db3f36dc18f6fa186ac",
   "deployments": {
     "adservice": {
       "replicas": 1,
@@ -912,7 +912,7 @@
         "spec": {
           "containers": [
             {
-              "image": "redis:alpine",
+              "image": "redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0",
               "imagePullPolicy": "IfNotPresent",
               "livenessProbe": {
                 "failureThreshold": 3,
@@ -987,7 +987,7 @@
           ]
         }
       },
-      "template_hash": "ee3a50d9650fa42c7c07ab0126e9aa5e5014fe075f943b8e0544ea4c5525cc51"
+      "template_hash": "f87315631107af59b3add787513a729ef461c967f6a310b2db7587ff54656890"
     },
     "shippingservice": {
       "replicas": 1,
@@ -1080,8 +1080,8 @@
       "template_hash": "b156feecc3120f026adb8b671a2cb0ba9cee1159d2f0e4047cccda764b0ee0a3"
     }
   },
-  "git_sha": "0bb482b67c4187e923d98abdedb96f9e1d83f9cc",
-  "golden_yaml_sha256": "646eca72d52bb04a56fe21b5d76a0fd9088d599783c37f7897037ca75bf08231",
+  "git_sha": "91237d02fabaf4e98993fd115284bf7237152cea",
+  "golden_yaml_sha256": "d55821f51d32c3fa5c7b77390c09eb1b641d34cabf0b2791e782f788747fa1d0",
   "managed": [
     "frontend",
     "cartservice",
