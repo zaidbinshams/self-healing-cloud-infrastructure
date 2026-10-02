@@ -13,6 +13,9 @@ Targets (G6 stall attribution, 2026-10-02):
                                                               not on the page-render path
   cart          cartservice      GetCart                   — the one dependency every page render
                                                               calls but POST /cart does not (.NET+redis)
+  cart_hc       cartservice      grpc.health.v1 Check      — same .NET server/runtime, no redis call:
+                                                              splits a whole-process pause from a pause
+                                                              in the StackExchange.Redis client path
   redis         redis-cart       PING (raw RESP)           — cartservice's backing store, bypassing .NET
 
 It also polls the kubelet's cAdvisor `container_threads` for cartservice every second (keeping
@@ -84,6 +87,7 @@ TARGETS = (
     Target("currency_hc", "currencyservice", 7000, 17000, "/grpc.health.v1.Health/Check"),
     Target("shipping_hc", "shippingservice", 50051, 15051, "/grpc.health.v1.Health/Check"),
     Target("cart", "cartservice", 7070, 17070, "/hipstershop.CartService/GetCart", PROBE_CART),
+    Target("cart_hc", "cartservice", 7070, 17070, "/grpc.health.v1.Health/Check"),
     Target("redis", "redis-cart", 6379, 16379, "PING", kind="redis"),
 )
 
