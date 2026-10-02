@@ -10,9 +10,17 @@ On the same 20 s tick windows as the env, collects:
              kubepods cgroup), node CPU pressure (PSI "some"), and per-service PSI waiting/stalled
 Writes one JSON line per tick and prints correlations at the end.
 
+--stalls mode (sub-second view, no tick windows): for --duration seconds, collects every frontend
+request (deduplicated by request id), pings A every 0.2 s, and polls the kubelet's cAdvisor CFS
+counters per service. Slow requests (> 500 ms) are grouped into stall events by start time; each
+event is checked against (a) ping RTT to A during it — a host-wide freeze delays pings too, a
+container-level stall does not — and (b) which services' throttled-period counters advanced in
+the cAdvisor samples bracketing it. Writes one JSON document.
+
 Uses the admin kubeconfig (pod logs, node metrics); never mutates anything.
 Usage:  source config/cluster.env
         python -m scripts.latency_diag --ticks 30 --out data/diag/latency.jsonl
+        python -m scripts.latency_diag --stalls --duration 180 --out data/diag/stalls.json
 """
 
 from __future__ import annotations
@@ -26,6 +34,7 @@ import statistics
 import subprocess
 import sys
 import threading
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,6 +56,11 @@ LOG_LOOKBACK_PAD_S = 15
 PATH_ID_RE = re.compile(r"^/product/[^/]+$")
 HEALTH_PATH = "/_healthz"
 SLOW_MS = (500, 1000)
+STALL_GAP_S = 1.0          # slow requests starting within this gap belong to one stall event
+PING_SPIKE_MS = 150.0      # a ping this slow during a stall points at the host, not a container
+LOG_POLL_S = 10.0          # frontend log poll period (logs fetched with LOG_LOOKBACK_PAD_S overlap)
+CADVISOR_POLL_S = 2.5      # kubelet cAdvisor poll period (its housekeeping interval on A is 5 s)
+EVENT_PAD_S = 0.2          # ping window padding around a stall event
 _SEL = '{namespace="boutique",container="server"}'
 
 
@@ -178,11 +192,144 @@ def server_latencies(core: client.CoreV1Api, ns: str, t0: float, t1: float, time
                           f"over_{SLOW_MS[0]}": sum(x > SLOW_MS[0] for x in v)} for p, v in sorted(by_path.items())}}
 
 
+THR_RE = re.compile(r'^(container_cpu_cfs_throttled_periods_total|container_cpu_cfs_periods_total)\{([^}]*)\} '
+                    r'([0-9.eE+-]+) (\d+)$')
+
+
+def cfs_samples(core: client.CoreV1Api, node: str, ns: str, timeout: tuple[float, float]) -> dict[str, tuple[float, float, float]]:
+    """deployment -> (cAdvisor sample time s, throttled periods, periods) for boutique `server` containers."""
+    resp = core.connect_get_node_proxy_with_path(node, "metrics/cadvisor", _request_timeout=timeout,
+                                                 _preload_content=False)
+    acc: dict[str, list[float]] = defaultdict(lambda: [0.0, 0.0, 0.0])
+    for line in resp.data.decode("utf-8", errors="replace").splitlines():
+        m = THR_RE.match(line)
+        if not m:
+            continue
+        labels = dict(LABEL_RE.findall(m.group(2)))
+        dep = pod_deployment(labels.get("pod", "")) if labels.get("namespace") == ns and labels.get("container") == "server" else None
+        if not dep:
+            continue
+        a = acc[dep]
+        a[0] = max(a[0], int(m.group(4)) / 1000)
+        a[1 if m.group(1).endswith("throttled_periods_total") else 2] += float(m.group(3))
+    return {d: (a[0], a[1], a[2]) for d, a in acc.items()}
+
+
+def run_stalls(args: argparse.Namespace) -> int:
+    env = os.environ
+    c = load_contract()
+    ns, kt = c.cluster.namespace, c.telemetry.k8s_timeout_s
+    core = client.CoreV1Api(make_api_client(env["KUBE_ADMIN"]))
+    node = core.list_node(_request_timeout=kt).items[0].metadata.name
+    pod = core.list_namespaced_pod(ns, label_selector="app=frontend", _request_timeout=kt).items[0].metadata.name
+    pinger = Pinger(env["A_IP"])
+    reqs: dict[str, tuple[float, str, float]] = {}
+    cfs: list[tuple[float, dict[str, tuple[float, float, float]]]] = []
+    errors: list[str] = []
+    end = time.monotonic() + args.duration
+    next_log = time.monotonic()
+    while time.monotonic() < end:
+        try:
+            cfs.append((time.time(), cfs_samples(core, node, ns, kt)))
+            if time.monotonic() >= next_log:
+                next_log += LOG_POLL_S
+                text = core.read_namespaced_pod_log(pod, ns, container="server", since_seconds=int(LOG_POLL_S + LOG_LOOKBACK_PAD_S),
+                                                    _request_timeout=kt, _preload_content=False).data.decode("utf-8", errors="replace")
+                for line in text.splitlines():
+                    try:
+                        r = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if r.get("message") == "request complete" and r.get("http.req.path") != HEALTH_PATH:
+                        path = PATH_ID_RE.sub("/product/[id]", r["http.req.path"])
+                        reqs[r["http.req.id"]] = (parse_ts(r["timestamp"]), f"{r['http.req.method']} {path}",
+                                                  float(r["http.resp.took_ms"]))
+        except (ApiException, urllib3.exceptions.HTTPError, KeyError, ValueError) as exc:
+            errors.append(f"{type(exc).__name__}: {str(exc)[:120]}")
+        time.sleep(CADVISOR_POLL_S)
+    pinger.stop()
+
+    done = sorted(reqs.values())
+    slow = sorted((t - ms / 1000, t, ms, path) for t, path, ms in done if ms > SLOW_MS[0])
+    events: list[dict[str, Any]] = []
+    for start, finish, ms, path in slow:
+        if events and start - events[-1]["start"] < STALL_GAP_S:
+            ev = events[-1]
+            ev["end"] = max(ev["end"], finish)
+            ev["n"] += 1
+            ev["paths"][path] = ev["paths"].get(path, 0) + 1
+        else:
+            events.append({"start": start, "end": finish, "n": 1, "paths": {path: 1}})
+    pings = sorted(pinger.samples)
+    deps = sorted({d for _, snap in cfs for d in snap})
+
+    def throttle_between(t0: float, t1: float) -> dict[str, float]:
+        """Throttled share of CFS periods per service between the samples bracketing [t0, t1]."""
+        out = {}
+        for d in deps:
+            series = sorted({snap[d] for _, snap in cfs if d in snap})          # (sample_t, thr, periods)
+            before = [x for x in series if x[0] <= t0]
+            after = [x for x in series if x[0] >= t1]
+            if before and after and after[0][2] > before[-1][2]:
+                out[d] = (after[0][1] - before[-1][1]) / (after[0][2] - before[-1][2])
+        return out
+
+    lo = pings[0][0] if pings else float("inf")
+    hi = pings[-1][0] if pings else float("-inf")
+    for ev in events:
+        w = [p[2] for p in pings if ev["start"] - EVENT_PAD_S <= p[0] <= ev["end"] + EVENT_PAD_S]
+        ev["ping_n"], ev["ping_max_ms"] = len(w), (max(w) if w else None)
+        ev["throttle"] = throttle_between(ev["start"], ev["end"])
+    covered = [ev for ev in events if lo < ev["start"] and ev["end"] < hi]
+    quiet = [p[2] for p in pings
+             if not any(e["start"] - EVENT_PAD_S <= p[0] <= e["end"] + EVENT_PAD_S for e in events)]
+    span = (done[-1][0] - done[0][0]) if len(done) > 1 else float("nan")
+    whole = {}
+    for d in deps:            # first vs last cAdvisor sample (sample times lag B's poll times)
+        series = sorted({snap[d] for _, snap in cfs if d in snap})
+        if len(series) > 1 and series[-1][2] > series[0][2]:
+            whole[d] = (series[-1][1] - series[0][1]) / (series[-1][2] - series[0][2])
+    summary = {
+        "requests": len(done), "slow": len(slow), "slow_share": len(slow) / len(done) if done else None,
+        "span_s": span, "events": len(events), "events_per_min": len(events) / span * 60 if math.isfinite(span) and span > 0 else None,
+        "event_duration_s_median": statistics.median([e["end"] - e["start"] for e in events]) if events else None,
+        "events_with_ping_spike": sum(1 for e in covered if (e["ping_max_ms"] or 0) > PING_SPIKE_MS),
+        "events_with_ping_coverage": len(covered),
+        "quiet_ping_spike_share": sum(x > PING_SPIKE_MS for x in quiet) / len(quiet) if quiet else None,
+        "throttle_whole_run": whole,
+        "throttle_in_stalls_mean": {d: statistics.fmean(e["throttle"][d] for e in events if d in e["throttle"])
+                                    for d in deps if any(d in e["throttle"] for e in events)},
+        "errors": errors,
+    }
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps({"summary": summary, "events": events}, indent=1, default=str))
+
+    print(f"{summary['requests']} requests over {span:.0f} s; {summary['slow']} > {SLOW_MS[0]} ms "
+          f"({(summary['slow_share'] or 0):.2%}); {len(events)} stall events "
+          f"({(summary['events_per_min'] or 0):.1f}/min, median {summary['event_duration_s_median'] or 0:.2f} s)")
+    for ev in events:
+        top = sorted(ev["throttle"].items(), key=lambda kv: -kv[1])[:3]
+        print(f"  stall +{ev['start'] - done[0][0]:6.1f}s dur {ev['end'] - ev['start']:4.2f}s reqs {ev['n']:3d} "
+              f"ping max {ev['ping_max_ms'] if ev['ping_max_ms'] is not None else float('nan'):6.1f} ms | "
+              + " ".join(f"{d} {v:.2f}" for d, v in top))
+    print(f"host-freeze test: {summary['events_with_ping_spike']}/{summary['events_with_ping_coverage']} stalls had a ping > "
+          f"{PING_SPIKE_MS:.0f} ms (outside stalls: {(summary['quiet_ping_spike_share'] or 0):.1%} of pings)")
+    print("throttled share of CFS periods — whole run vs bracketing stalls (mean):")
+    for d in sorted(whole, key=lambda d: -summary["throttle_in_stalls_mean"].get(d, 0)):
+        print(f"  {d:24s} {whole[d]:.3f}  vs  {summary['throttle_in_stalls_mean'].get(d, float('nan')):.3f}")
+    print(f"errors: {len(errors)}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ticks", type=int, default=30)
+    ap.add_argument("--stalls", action="store_true", help="sub-second stall-event mode (see module docstring)")
+    ap.add_argument("--duration", type=float, default=180.0, help="--stalls: seconds to observe")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args(argv)
+    if args.stalls:
+        return run_stalls(args)
     env = os.environ
     c = load_contract()
     ns, tick_s = c.cluster.namespace, c.clock.tick_s
