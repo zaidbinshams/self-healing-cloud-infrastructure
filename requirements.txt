@@ -8,3 +8,4 @@ urllib3==2.8.0
 locust==2.46.6                 # added M2 (pulls gevent, flask, geventhttpclient)
 pytest==9.1.1
 ruff==0.16.9
+numpy==2.4.6                   # added M3 (observations are np.float32, CLAUDE.md §7)
