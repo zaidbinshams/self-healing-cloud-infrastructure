@@ -4,7 +4,7 @@ Transformations (PLAN.md M1):
   * drop the `loadgenerator` Deployment and its ServiceAccount;
   * convert Service `frontend-external` from LoadBalancer to NodePort 30080;
   * set explicit replicas: contract `replicas.base` for managed services, 1 for the rest;
-  * apply `golden_overrides` resource overrides from config/contract.yaml;
+  * apply `golden_overrides` from config/contract.yaml (resource values, or a digest-pinned image);
   * stamp every object with the contract namespace.
 
 Output is deterministic for a given (upstream, contract) pair. The output file is
@@ -40,6 +40,8 @@ OVERRIDE_KEYS: dict[str, tuple[str, str]] = {
     "cpu_request": ("requests", "cpu"),
     "memory_request": ("requests", "memory"),
 }
+IMAGE_KEY = "image"                 # golden_overrides image pin; must carry an @sha256: digest
+DIGEST_MARK = "@sha256:"
 
 
 class GoldenBuildError(RuntimeError):
@@ -80,14 +82,26 @@ def _app_container(dep: dict[str, Any]) -> dict[str, Any]:
     return matches[0]
 
 
+def _override_container(dep: dict[str, Any]) -> dict[str, Any]:
+    """The container overrides apply to: the only container, else the one named `server`."""
+    containers = dep["spec"]["template"]["spec"]["containers"]
+    return containers[0] if len(containers) == 1 else _app_container(dep)
+
+
 def _apply_overrides(dep: dict[str, Any], spec: dict[str, Any]) -> None:
-    unknown = set(spec) - set(OVERRIDE_KEYS)
+    name = dep["metadata"]["name"]
+    unknown = set(spec) - set(OVERRIDE_KEYS) - {IMAGE_KEY}
     if unknown:
-        raise GoldenBuildError(f"{dep['metadata']['name']}: unknown golden_overrides keys {sorted(unknown)}")
-    resources = _app_container(dep).setdefault("resources", {})
+        raise GoldenBuildError(f"{name}: unknown golden_overrides keys {sorted(unknown)}")
+    container = _override_container(dep)
     for key, value in spec.items():
+        if key == IMAGE_KEY:
+            if DIGEST_MARK not in str(value):
+                raise GoldenBuildError(f"{name}: image override must be digest-pinned ({DIGEST_MARK}...), got {value!r}")
+            container["image"] = str(value)
+            continue
         section, resource = OVERRIDE_KEYS[key]
-        resources.setdefault(section, {})[resource] = str(value)
+        container.setdefault("resources", {}).setdefault(section, {})[resource] = str(value)
 
 
 def transform(docs: list[dict[str, Any]], contract: dict[str, Any]) -> list[dict[str, Any]]:

@@ -34,7 +34,7 @@ A–B clock skew uses the **200 ms design gate**. Its 1000 ms override was retir
 
 No other gate is relaxed.
 
-**Cluster tuning (human-approved 2026-10-02).** Kubelet cAdvisor housekeeping on A is 5 s (`[A] sudo bash k8s/k3s/kubelet-housekeeping.sh`), so the 30 s rate window is never empty at the live edge. `frontend` (400m), `currencyservice` (300m) and the non-managed `recommendationservice` (500m, M3 G6 test) run with raised CPU limits (`golden_overrides`), so the baseline is not CPU-starved. Details: `CLAUDE.md` §2 "Cluster tuning".
+**Cluster tuning (human-approved 2026-10-02).** Kubelet cAdvisor housekeeping on A is 5 s (`[A] sudo bash k8s/k3s/kubelet-housekeeping.sh`), so the 30 s rate window is never empty at the live edge. `frontend` (400m), `currencyservice` (300m) and the non-managed `recommendationservice` (500m, M3 G6 test) run with raised CPU limits (`golden_overrides`), so the baseline is not CPU-starved. The upstream `redis:alpine` tag floats, so `redis-cart` is pinned by digest to `redis:8.10.2-alpine` (the image it was already running). Details: `CLAUDE.md` §2 "Cluster tuning".
 
 **Clock-sync topology (human-approved 2026-10-01).** A is the NTP server and B follows it through the Windows host's w32time. B's `time.time()` remains the timestamp source. Measured skew is about 7 ms. Setup and rationale: `CLAUDE.md` §2 "Clock-sync topology".
 

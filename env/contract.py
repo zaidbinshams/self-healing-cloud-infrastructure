@@ -35,10 +35,13 @@ FEATURES_PER_SERVICE = 7
 FAULT_KINDS = ("F1", "F2", "F3", "F4", "NULL")
 ACTION_KINDS = ("NOOP", "SCALE", "RESTART", "RESTORE")
 PROB_SUM_TOL = 1e-9
-# Non-managed deployments whose resources golden_overrides may set (human-approved per entry).
-# recommendationservice: 57% CFS-throttled at the 50-user baseline, the G6 tail-latency
-# suspect (2026-10-02). The agent still neither observes nor acts on it.
-UNMANAGED_OVERRIDABLE = ("recommendationservice",)
+# Non-managed deployments golden_overrides may name (human-approved per entry); the agent still
+# neither observes nor acts on them.
+#   recommendationservice: 57% CFS-throttled at the 50-user baseline, G6 tail suspect (2026-10-02)
+#   redis-cart: upstream image is the floating `redis:alpine`; pinned by digest (2026-10-02)
+UNMANAGED_OVERRIDABLE = ("recommendationservice", "redis-cart")
+OVERRIDE_KEYS = ("cpu_limit", "memory_limit", "cpu_request", "memory_request", "image")
+IMAGE_DIGEST_MARK = "@sha256:"
 
 
 class ContractError(ValueError):
@@ -268,6 +271,10 @@ def _validate(c: Contract) -> None:
     _require(0 <= c.sla.e_sla < c.sla.e_max <= 1, "sla: need 0 <= e_sla < e_max <= 1")
     _require(set(c.golden_overrides) <= set(managed) | set(UNMANAGED_OVERRIDABLE),
              f"golden_overrides may only name managed deployments or {UNMANAGED_OVERRIDABLE}")
+    for dep, spec in c.golden_overrides.items():
+        _require(set(spec) <= set(OVERRIDE_KEYS), f"golden_overrides.{dep}: keys must be in {OVERRIDE_KEYS}")
+        _require(IMAGE_DIGEST_MARK in spec.get("image", IMAGE_DIGEST_MARK),
+                 f"golden_overrides.{dep}.image must be digest-pinned ({IMAGE_DIGEST_MARK}...)")
 
 
 # ----------------------------------------------------------------------------- loaders

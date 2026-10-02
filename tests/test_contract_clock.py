@@ -35,6 +35,7 @@ def test_locked_contract_loads(contract):
     lambda r: r["clock"].update(collect_deadline_s=25),                  # deadline >= tick
     lambda r: r["episode"]["fault_probs"].update({None: r["episode"]["fault_probs"].pop("NULL")}),  # bare NULL key
     lambda r: r["golden_overrides"].update(adservice={"cpu_limit": "500m"}),  # not managed nor allow-listed
+    lambda r: r["golden_overrides"].update(cartservice={"image": "cart:latest"}),  # image not digest-pinned
 ])
 def test_invalid_contract_rejected(tmp_path, mutate):
     with pytest.raises(ContractError):
