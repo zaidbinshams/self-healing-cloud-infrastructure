@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     header = {
         "kind": "header", "run": args.run, "created_at": time.time(), "n_requested": args.n,
         "contract_sha256": contract.sha256, "golden_live_sha256": sha256_file(GOLDEN_LIVE_PATH),
-        "git_sha": _git("rev-parse", "HEAD"), "git_dirty": bool(_git("status", "--porcelain")),
+        "git_sha": _git("rev-parse", "HEAD"), "git_dirty": bool(_git("status", "--porcelain", "--untracked-files=no")),
         "managed": list(contract.cluster.managed), "tick_s": contract.clock.tick_s,
         "collect_deadline_s": contract.clock.collect_deadline_s,
         "locust_users": _locust_users(os.environ["LOCUST_URL"], contract.telemetry.locust_timeout_s, events),
