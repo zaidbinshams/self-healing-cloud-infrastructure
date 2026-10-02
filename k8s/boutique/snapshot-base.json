@@ -1,7 +1,7 @@
 {
-  "captured_at": 1790941146.712214,
-  "captured_at_iso": "2026-10-02T11:39:06.712214+00:00",
-  "contract_sha256": "1c8aa51ed18f6e6de166e2d03a070d264d4d5e1e1e1b3e0df701a9f15a003861",
+  "captured_at": 1790943275.9522564,
+  "captured_at_iso": "2026-10-02T12:14:35.952256+00:00",
+  "contract_sha256": "e4e9895d00828b744a7650caa82c449898c2231c629b67d5b70659cadb978854",
   "deployments": {
     "adservice": {
       "replicas": 1,
@@ -863,7 +863,7 @@
               },
               "resources": {
                 "limits": {
-                  "cpu": "200m",
+                  "cpu": "500m",
                   "memory": "450Mi"
                 },
                 "requests": {
@@ -899,7 +899,7 @@
           "terminationGracePeriodSeconds": 5
         }
       },
-      "template_hash": "7d28c8727d29e95a0b79852d3e059c499f2eaa386f7e017a77db231b75b9e165"
+      "template_hash": "e1b2eb762ce07788b90f8c018ccecf148e0ec8c0afd84827cd07d387a5ccf2ec"
     },
     "redis-cart": {
       "replicas": 1,
@@ -1080,8 +1080,8 @@
       "template_hash": "b156feecc3120f026adb8b671a2cb0ba9cee1159d2f0e4047cccda764b0ee0a3"
     }
   },
-  "git_sha": "b5e0aea97756eaa84464fdf2af3cdaf348b7fbfc",
-  "golden_yaml_sha256": "a490b9c0e9574177d941f6681b777957b3c2b21077673c4717c163aa1076fb94",
+  "git_sha": "0bb482b67c4187e923d98abdedb96f9e1d83f9cc",
+  "golden_yaml_sha256": "646eca72d52bb04a56fe21b5d76a0fd9088d599783c37f7897037ca75bf08231",
   "managed": [
     "frontend",
     "cartservice",
