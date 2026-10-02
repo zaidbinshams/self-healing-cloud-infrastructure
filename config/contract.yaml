@@ -39,6 +39,7 @@ replicas:
   max:  {frontend: 3, cartservice: 2, currencyservice: 2, productcatalogservice: 1}
 golden_overrides:                   # CONTRACT-CHANGE 2026-10-02: frontend 200m was ~99% CFS-throttled at U=50 before any fault
   frontend: {cpu_limit: "400m"}
+  currencyservice: {cpu_limit: "300m"}   # CONTRACT-CHANGE 2026-10-02: 200m was 0.41-0.46 throttled at U=50 (> runbook θ)
 reward:
   action_cost: {NOOP: 0.0, SCALE: 0.02, RESTART: 0.04, RESTORE: 0.04}
   w_replica: 0.05
