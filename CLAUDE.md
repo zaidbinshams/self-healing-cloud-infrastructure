@@ -103,7 +103,19 @@ The design has B as the chrony time source. In the deployed environment **A serv
   - `preflight --stage m1` skew: −1 ± 6 ms, within the 200 ms design gate.
 - **If skew grows:** check `w32tm /query /status` on Windows first, then `wsl --shutdown`.
 
-These are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
+#### Cluster tuning (Human-Approved 2026-10-02)
+
+Two changes to the cluster itself (not gate thresholds), made during M2 after the live-edge freshness test of 2026-10-01:
+
+| Change | Design | Deployed | Where |
+|---|---|---|---|
+| Kubelet cAdvisor housekeeping interval on A | 10 s (kubelet default; backs off to 15 s) | **5 s** | `k8s/k3s/kubelet-housekeeping.sh` (K3s drop-in `kubelet-arg+`) |
+| `frontend` CPU limit | 200m (upstream) | **400m** | `contract.yaml` `golden_overrides` (`CONTRACT-CHANGE`) → `golden.yaml` → `golden_live.json` |
+
+- **Housekeeping.** With the default interval the newest cAdvisor sample was a median 12 s / p95 21 s old at query time, so `rate(...[30s])` at the live edge returned nothing for 8–46 % of evaluations per managed deployment. §5.5 would mark those ticks stale and truncate episodes.
+- **Frontend limit.** At the 50-user baseline the 200m frontend was ~99 % CFS-throttled before any fault. That would have made the baseline itself unhealthy and blurred F4 (surge) with steady-state saturation. Frontend stays the intended F4 bottleneck; this is re-checked by the F4 fault smoke in M3.
+
+These threshold overrides and cluster-tuning changes are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
 
 ---
 
@@ -685,7 +697,7 @@ Fields:
 
    Then annotate `boutique` with `chaos-mesh.org/inject=enabled`. Without the correct socket, the chaos daemon silently does nothing.
 2. **Container names.** All Online Boutique app containers are named `server`. Aggregate by deployment through the pod-name regex, never by container.
-3. **Freshness.** cAdvisor refreshes about every 10 s, so `rate(...[30s])` is the shortest reliable window. Fresh pods produce empty results for one or two ticks; this is expected and handled by §5.5.
+3. **Freshness.** cAdvisor refreshes every 10 s by default (5 s on the deployed A, §2 "Cluster tuning"), so `rate(...[30s])` is the shortest reliable window. Fresh pods produce empty results for one or two ticks; this is expected and handled by §5.5.
 4. **Patch type.** Strategic-merge patches cannot remove `EXTRA_LATENCY`. RESTORE must use JSON Patch `replace /spec/template`.
 5. **Golden comparison.** Comparing the live template to the raw YAML always differs (API defaulting). Compare against `golden_live.json` and ignore `restartedAt`.
 6. **Scale-to-zero.** A deployment at `replicas: 0` has no pods, so its Prometheus series vanish. That is imputation rule 1, not staleness.
