@@ -35,6 +35,10 @@ FEATURES_PER_SERVICE = 7
 FAULT_KINDS = ("F1", "F2", "F3", "F4", "NULL")
 ACTION_KINDS = ("NOOP", "SCALE", "RESTART", "RESTORE")
 PROB_SUM_TOL = 1e-9
+# Non-managed deployments whose resources golden_overrides may set (human-approved per entry).
+# recommendationservice: 57% CFS-throttled at the 50-user baseline, the G6 tail-latency
+# suspect (2026-10-02). The agent still neither observes nor acts on it.
+UNMANAGED_OVERRIDABLE = ("recommendationservice",)
 
 
 class ContractError(ValueError):
@@ -262,7 +266,8 @@ def _validate(c: Contract) -> None:
     _require(c.telemetry.locf_max_ticks >= 0, "telemetry.locf_max_ticks must be >= 0")
     _require(c.telemetry.stale_truncate_ticks >= 1, "telemetry.stale_truncate_ticks must be >= 1")
     _require(0 <= c.sla.e_sla < c.sla.e_max <= 1, "sla: need 0 <= e_sla < e_max <= 1")
-    _require(set(c.golden_overrides) <= set(managed), "golden_overrides may only name managed deployments")
+    _require(set(c.golden_overrides) <= set(managed) | set(UNMANAGED_OVERRIDABLE),
+             f"golden_overrides may only name managed deployments or {UNMANAGED_OVERRIDABLE}")
 
 
 # ----------------------------------------------------------------------------- loaders

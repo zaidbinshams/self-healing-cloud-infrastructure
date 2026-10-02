@@ -34,6 +34,7 @@ def test_locked_contract_loads(contract):
     lambda r: r["episode"]["fault_probs"].update(F1=0.5),                # probs do not sum to 1
     lambda r: r["clock"].update(collect_deadline_s=25),                  # deadline >= tick
     lambda r: r["episode"]["fault_probs"].update({None: r["episode"]["fault_probs"].pop("NULL")}),  # bare NULL key
+    lambda r: r["golden_overrides"].update(adservice={"cpu_limit": "500m"}),  # not managed nor allow-listed
 ])
 def test_invalid_contract_rejected(tmp_path, mutate):
     with pytest.raises(ContractError):
@@ -86,3 +87,8 @@ def test_sleep_until_past_target_does_not_sleep():
     ft = FakeTime()
     clock = TickClock(20.0, 0.5, ft.mono, ft.wall, ft.sleep)
     assert clock.sleep_until(50.0) == 100.0
+
+
+def test_allow_listed_unmanaged_override_accepted(tmp_path):
+    path = write_contract(tmp_path, lambda r: r["golden_overrides"].update(recommendationservice={"cpu_limit": "500m"}))
+    assert dict(load_contract(path).golden_overrides)["recommendationservice"]["cpu_limit"] == "500m"

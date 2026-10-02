@@ -105,17 +105,19 @@ The design has B as the chrony time source. In the deployed environment **A serv
 
 #### Cluster tuning (Human-Approved 2026-10-02)
 
-Three changes to the cluster itself (not gate thresholds), made during M2 after the live-edge freshness test of 2026-10-01:
+Four changes to the cluster itself (not gate thresholds), made during M2 after the live-edge freshness test of 2026-10-01:
 
 | Change | Design | Deployed | Where |
 |---|---|---|---|
 | Kubelet cAdvisor housekeeping interval on A | 10 s (kubelet default; backs off to 15 s) | **5 s** | `k8s/k3s/kubelet-housekeeping.sh` (K3s drop-in `kubelet-arg+`) |
 | `frontend` CPU limit | 200m (upstream) | **400m** | `contract.yaml` `golden_overrides` (`CONTRACT-CHANGE`) → `golden.yaml` → `golden_live.json` |
 | `currencyservice` CPU limit | 200m (upstream) | **300m** | same path as frontend |
+| `recommendationservice` CPU limit (not managed) | 200m (upstream) | **500m** | same path; allow-listed in `env/contract.py` `UNMANAGED_OVERRIDABLE` |
 
 - **Housekeeping.** With the default interval the newest cAdvisor sample was a median 12 s / p95 21 s old at query time, so `rate(...[30s])` at the live edge returned nothing for 8–46 % of evaluations per managed deployment. §5.5 would mark those ticks stale and truncate episodes.
 - **Frontend limit.** At the 50-user baseline the 200m frontend was ~99 % CFS-throttled before any fault. That would have made the baseline itself unhealthy and blurred F4 (surge) with steady-state saturation. Frontend stays the intended F4 bottleneck; this is re-checked by the F4 fault smoke in M3.
 - **Currencyservice limit.** With frontend unthrottled, currencyservice at 200m was 0.41–0.46 throttled at the 50-user baseline, above the runbook's `throttle_threshold` (0.40). That made a healthy baseline look like F2 and made the M2 smoke gate (≥ 0.40) pass before any stress.
+- **Recommendationservice limit (M3, G6 test).** At 50 users it was 57% throttled (PSI wait 9%) while 2–3% of page renders took > 500 ms, making tick-P99 bimodal (CV 0.29–0.52 vs G6 < 0.25). It is outside the agent's state and action space; raising its limit removes background noise, not a fault the agent should handle.
 
 These threshold overrides and cluster-tuning changes are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
 
