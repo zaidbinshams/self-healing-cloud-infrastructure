@@ -495,6 +495,8 @@ def build_obs(f: TickFeatures, prev: TickFeatures | None, *, contract: Contract,
     `prev` is the previous tick's features in the same episode (None on the first tick, giving
     d_p99 = d_fail = 0). `ticks_since_action` is None if no action has been taken this episode.
     """
+    # Check inputs first: min/max clipping maps NaN to a bound, which would hide it (§5.5 rule 8).
+    _assert_finite(f)
     obs = np.zeros(OBS_DIM, dtype=np.float32)
     p99 = norm_p99(f.p99_ms, l_sla_ms)
     fail = _clip01(f.fail_ratio)
