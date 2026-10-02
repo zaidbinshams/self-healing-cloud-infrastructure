@@ -21,7 +21,7 @@ def write_contract(tmp_path, mutate):
 
 def test_locked_contract_loads(contract):
     assert contract.cluster.managed == ("frontend", "cartservice", "currencyservice", "productcatalogservice")
-    assert dict(contract.episode.fault_probs)["NULL"] == pytest.approx(0.12)   # unquoted YAML `NULL:` key
+    assert dict(contract.episode.fault_probs)["NULL"] == pytest.approx(0.12)   # quoted "NULL" key, not YAML null
     assert contract.telemetry.locf_max_ticks == 2 and len(contract.sha256) == 64
 
 
@@ -33,6 +33,7 @@ def test_locked_contract_loads(contract):
     lambda r: r["reward"].update(replica_denominator=5),                 # != sum(max - base)
     lambda r: r["episode"]["fault_probs"].update(F1=0.5),                # probs do not sum to 1
     lambda r: r["clock"].update(collect_deadline_s=25),                  # deadline >= tick
+    lambda r: r["episode"]["fault_probs"].update({None: r["episode"]["fault_probs"].pop("NULL")}),  # bare NULL key
 ])
 def test_invalid_contract_rejected(tmp_path, mutate):
     with pytest.raises(ContractError):

@@ -276,11 +276,6 @@ def load_contract(path: Path = CONTRACT_PATH) -> Contract:
         raw = yaml.safe_load(path.read_text())
     except (OSError, yaml.YAMLError) as exc:
         raise ContractError(f"cannot read {path}: {type(exc).__name__}: {exc}") from exc
-    # YAML 1.1 reads the unquoted `NULL:` key of episode.fault_probs as null; it names the
-    # no-fault episode kind, so map exactly that key back to the string "NULL".
-    probs = ((raw or {}).get("episode") or {}).get("fault_probs")
-    if isinstance(probs, dict) and None in probs and "NULL" not in probs:
-        probs["NULL"] = probs.pop(None)
     contract = _build(Contract, raw, "contract")
     _validate(contract)
     return dataclasses.replace(contract, sha256=sha256_file(path))

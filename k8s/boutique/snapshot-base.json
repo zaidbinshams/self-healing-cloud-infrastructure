@@ -1,7 +1,7 @@
 {
-  "captured_at": 1790937307.0384014,
-  "captured_at_iso": "2026-10-02T10:35:07.038401+00:00",
-  "contract_sha256": "0899c8249e74b4bca3320fa690eef990cdd9913344a160ad74a3620a234c89e3",
+  "captured_at": 1790941146.712214,
+  "captured_at_iso": "2026-10-02T11:39:06.712214+00:00",
+  "contract_sha256": "1c8aa51ed18f6e6de166e2d03a070d264d4d5e1e1e1b3e0df701a9f15a003861",
   "deployments": {
     "adservice": {
       "replicas": 1,
@@ -1080,8 +1080,8 @@
       "template_hash": "b156feecc3120f026adb8b671a2cb0ba9cee1159d2f0e4047cccda764b0ee0a3"
     }
   },
-  "git_sha": "4e9576aab3b12555fa47f2efe9cd2af12e23b71b",
-  "golden_yaml_sha256": "3159cda4baa19941be22b45375ede3b9675377a0902893f9f4c62e8f163fde28",
+  "git_sha": "b5e0aea97756eaa84464fdf2af3cdaf348b7fbfc",
+  "golden_yaml_sha256": "a490b9c0e9574177d941f6681b777957b3c2b21077673c4717c163aa1076fb94",
   "managed": [
     "frontend",
     "cartservice",

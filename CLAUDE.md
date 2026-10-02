@@ -288,7 +288,7 @@ episode:
   lead_in_ticks: [2, 5]
   fault_max_ticks: 18
   null_extra_ticks: 6
-  fault_probs: {F1: 0.22, F2: 0.22, F3: 0.22, F4: 0.22, NULL: 0.12}
+  fault_probs: {F1: 0.22, F2: 0.22, F3: 0.22, F4: 0.22, "NULL": 0.12}   # quoted: bare NULL is YAML null
   f1_latency: ["300ms", "600ms", "1s"]
   f2_targets: [currencyservice, cartservice]
   f2_workers: [1, 2]
