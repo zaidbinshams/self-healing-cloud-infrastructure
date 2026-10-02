@@ -297,7 +297,7 @@ Then validate it end-to-end with the **scripted runbook**. Calibrate the SLA, pa
 | `agents/runbook.py` | Rules R0–R6 (`CLAUDE.md` §5.11), stateful, observation-only |
 | `agents/run_policy.py` | Runs `noop\|random\|runbook\|checkpoint` policies for N episodes with optional ε |
 | `scripts/record_ticks.py` | Records real ticks to `tests/fixtures/` for unit tests |
-| `scripts/calibrate.py` | Searches `U_base` (A CPU ≈ 50%), runs 30 min steady state, writes `config/calibration.json` |
+| `scripts/calibrate.py` | Searches `U_base` (frontend CPU ≈ 50–60% of its 400m limit), runs 30 min steady state, writes `config/calibration.json` |
 | `scripts/fault_smoke.py` | Injects one fault, applies the known-correct action, verifies cure and recovery, resets |
 | `scripts/gates.py` | Computes G1–G7 from run logs and prints PASS/FAIL |
 | `scripts/watchdog.sh` | Restarts a crashed run from its last checkpoint/episode; alerts after 3 failures |
@@ -319,6 +319,8 @@ Then validate it end-to-end with the **scripted runbook**. Calibrate the SLA, pa
    python -m scripts.calibrate --minutes 30
    ```
    This writes `L_SLA`, `RPS_base`, and `U_base`.
+
+   **`U_base` definition (redefined 2026-10-02, human-approved).** `U_base` is the Locust user count at which the **frontend** runs at roughly **50–60 % CPU utilization relative to its 400m limit** before any fault, i.e. the contract `cpu_util[frontend]` feature (`Q_cpu[frontend] / (0.4 · replicas)`), averaged over steady ticks. It replaces the original target of ≈ 50 % of Machine A's host CPU: A has 16 cores, so that target (~8 cores) would push the user count far past what Online Boutique's 200–500m service limits can carry and crush the baseline. Anchoring on frontend keeps headroom for the F4 surge (2.5–3 × `U_base`), which is meant to saturate frontend, and is independent of the host size.
 4. **Fault smoke tests.** Run each fault and target with its oracle remedy.
    ```bash
    python -m scripts.fault_smoke --fault F1 --severity 600ms

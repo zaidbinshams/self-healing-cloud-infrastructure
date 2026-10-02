@@ -340,6 +340,8 @@ runbook:
 
 `config/calibration.json` (generated) contains: `l_sla_ms`, `rps_base`, `u_base`, `calibrated_at`, `env_git_sha`.
 
+`u_base` is the Locust user count that puts the **frontend at ~50–60 % CPU utilization relative to its limit** (`cpu_util[frontend]`, §5.3) in steady state with no fault (redefined 2026-10-02, human-approved; previously ≈ 50 % of Machine A's host CPU, which on a 16-core A would overload the 200–500m service limits). `rps_base` and `L_SLA` are measured at that `u_base`.
+
 ### 5.2 Action Catalog (|A| = 12) and Kubernetes Mechanics
 
 | ID | Action | Kind | Target |
