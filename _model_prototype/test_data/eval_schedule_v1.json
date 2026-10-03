@@ -1,0 +1,216 @@
+{
+ "seed": 2026,
+ "sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+ "episodes": [
+  {
+   "fault": "F1",
+   "target": "productcatalogservice",
+   "severity": "300ms",
+   "episode": 0,
+   "L": 3
+  },
+  {
+   "fault": "F3",
+   "target": "cartservice",
+   "severity": null,
+   "episode": 1,
+   "L": 4
+  },
+  {
+   "fault": "NULL",
+   "target": null,
+   "severity": null,
+   "episode": 2,
+   "L": 5
+  },
+  {
+   "fault": "F4",
+   "target": "frontend",
+   "severity": 2.5,
+   "episode": 3,
+   "L": 2
+  },
+  {
+   "fault": "F4",
+   "target": "frontend",
+   "severity": 3.0,
+   "episode": 4,
+   "L": 3
+  },
+  {
+   "fault": "F4",
+   "target": "frontend",
+   "severity": 3.0,
+   "episode": 5,
+   "L": 3
+  },
+  {
+   "fault": "F2",
+   "target": "cartservice",
+   "severity": 2,
+   "episode": 6,
+   "L": 5
+  },
+  {
+   "fault": "F3",
+   "target": "cartservice",
+   "severity": null,
+   "episode": 7,
+   "L": 3
+  },
+  {
+   "fault": "F3",
+   "target": "currencyservice",
+   "severity": null,
+   "episode": 8,
+   "L": 2
+  },
+  {
+   "fault": "F4",
+   "target": "frontend",
+   "severity": 2.5,
+   "episode": 9,
+   "L": 2
+  },
+  {
+   "fault": "NULL",
+   "target": null,
+   "severity": null,
+   "episode": 10,
+   "L": 3
+  },
+  {
+   "fault": "NULL",
+   "target": null,
+   "severity": null,
+   "episode": 11,
+   "L": 4
+  },
+  {
+   "fault": "NULL",
+   "target": null,
+   "severity": null,
+   "episode": 12,
+   "L": 3
+  },
+  {
+   "fault": "F2",
+   "target": "currencyservice",
+   "severity": 1,
+   "episode": 13,
+   "L": 3
+  },
+  {
+   "fault": "F1",
+   "target": "productcatalogservice",
+   "severity": "600ms",
+   "episode": 14,
+   "L": 4
+  },
+  {
+   "fault": "F2",
+   "target": "cartservice",
+   "severity": 2,
+   "episode": 15,
+   "L": 3
+  },
+  {
+   "fault": "F1",
+   "target": "productcatalogservice",
+   "severity": "300ms",
+   "episode": 16,
+   "L": 5
+  },
+  {
+   "fault": "F3",
+   "target": "currencyservice",
+   "severity": null,
+   "episode": 17,
+   "L": 2
+  },
+  {
+   "fault": "F1",
+   "target": "productcatalogservice",
+   "severity": "1s",
+   "episode": 18,
+   "L": 5
+  },
+  {
+   "fault": "F3",
+   "target": "currencyservice",
+   "severity": null,
+   "episode": 19,
+   "L": 5
+  },
+  {
+   "fault": "F3",
+   "target": "cartservice",
+   "severity": null,
+   "episode": 20,
+   "L": 5
+  },
+  {
+   "fault": "F4",
+   "target": "frontend",
+   "severity": 2.5,
+   "episode": 21,
+   "L": 5
+  },
+  {
+   "fault": "F2",
+   "target": "cartservice",
+   "severity": 1,
+   "episode": 22,
+   "L": 4
+  },
+  {
+   "fault": "NULL",
+   "target": null,
+   "severity": null,
+   "episode": 23,
+   "L": 4
+  },
+  {
+   "fault": "F4",
+   "target": "frontend",
+   "severity": 3.0,
+   "episode": 24,
+   "L": 2
+  },
+  {
+   "fault": "F1",
+   "target": "productcatalogservice",
+   "severity": "1s",
+   "episode": 25,
+   "L": 3
+  },
+  {
+   "fault": "NULL",
+   "target": null,
+   "severity": null,
+   "episode": 26,
+   "L": 3
+  },
+  {
+   "fault": "F2",
+   "target": "currencyservice",
+   "severity": 2,
+   "episode": 27,
+   "L": 5
+  },
+  {
+   "fault": "F1",
+   "target": "productcatalogservice",
+   "severity": "600ms",
+   "episode": 28,
+   "L": 5
+  },
+  {
+   "fault": "F2",
+   "target": "currencyservice",
+   "severity": 2,
+   "episode": 29,
+   "L": 4
+  }
+ ]
+}
