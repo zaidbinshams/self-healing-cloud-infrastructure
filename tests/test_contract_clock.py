@@ -36,6 +36,8 @@ def test_locked_contract_loads(contract):
     lambda r: r["episode"]["fault_probs"].update({None: r["episode"]["fault_probs"].pop("NULL")}),  # bare NULL key
     lambda r: r["golden_overrides"].update(adservice={"cpu_limit": "500m"}),  # not managed nor allow-listed
     lambda r: r["golden_overrides"].update(cartservice={"image": "cart:latest"}),  # image not digest-pinned
+    lambda r: r["golden_overrides"].update(productcatalogservice={"env.EXTRA_LATENCY": "1s"}),  # fault var
+    lambda r: r["golden_overrides"].update(cartservice={"env.bad-name": "1"}),  # invalid env name
 ])
 def test_invalid_contract_rejected(tmp_path, mutate):
     with pytest.raises(ContractError):

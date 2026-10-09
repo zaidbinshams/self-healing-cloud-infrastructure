@@ -14,6 +14,7 @@ import dataclasses
 import hashlib
 import json
 import math
+import re
 import subprocess
 import types
 import typing
@@ -42,6 +43,10 @@ PROB_SUM_TOL = 1e-9
 UNMANAGED_OVERRIDABLE = ("recommendationservice", "redis-cart")
 OVERRIDE_KEYS = ("cpu_limit", "memory_limit", "cpu_request", "memory_request", "image")
 IMAGE_DIGEST_MARK = "@sha256:"
+# "env.<NAME>" overrides set a container environment variable in the golden template.
+# EXTRA_LATENCY is F1's fault variable and may never be part of the golden state.
+OVERRIDE_ENV_RE = re.compile(r"^env\.[A-Za-z_][A-Za-z0-9_]*$")
+FAULT_ENV = "EXTRA_LATENCY"
 
 
 class ContractError(ValueError):
@@ -272,7 +277,9 @@ def _validate(c: Contract) -> None:
     _require(set(c.golden_overrides) <= set(managed) | set(UNMANAGED_OVERRIDABLE),
              f"golden_overrides may only name managed deployments or {UNMANAGED_OVERRIDABLE}")
     for dep, spec in c.golden_overrides.items():
-        _require(set(spec) <= set(OVERRIDE_KEYS), f"golden_overrides.{dep}: keys must be in {OVERRIDE_KEYS}")
+        bad = [k for k in spec if k not in OVERRIDE_KEYS and not OVERRIDE_ENV_RE.match(k)]
+        _require(not bad, f"golden_overrides.{dep}: keys {bad} must be in {OVERRIDE_KEYS} or env.<NAME>")
+        _require(f"env.{FAULT_ENV}" not in spec, f"golden_overrides.{dep}: env.{FAULT_ENV} is the F1 fault variable")
         _require(IMAGE_DIGEST_MARK in spec.get("image", IMAGE_DIGEST_MARK),
                  f"golden_overrides.{dep}.image must be digest-pinned ({IMAGE_DIGEST_MARK}...)")
 

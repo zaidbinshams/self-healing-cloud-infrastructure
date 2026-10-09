@@ -105,7 +105,7 @@ The design has B as the chrony time source. In the deployed environment **A serv
 
 #### Cluster tuning (Human-Approved 2026-10-02)
 
-Five changes to the cluster itself (not gate thresholds), made during M2 after the live-edge freshness test of 2026-10-01:
+Six changes to the cluster itself (not gate thresholds), made during M2 after the live-edge freshness test of 2026-10-01:
 
 | Change | Design | Deployed | Where |
 |---|---|---|---|
@@ -114,6 +114,7 @@ Five changes to the cluster itself (not gate thresholds), made during M2 after t
 | `currencyservice` CPU limit | 200m (upstream) | **300m** | same path as frontend |
 | `recommendationservice` CPU limit (not managed) | 200m (upstream) | **500m** | same path; allow-listed in `env/contract.py` `UNMANAGED_OVERRIDABLE` |
 | `redis-cart` image (not managed) | `redis:alpine` (floating) | **`redis:8.10.2-alpine@sha256:3811…e5a0`** | `golden_overrides` `image` key (digest required); allow-listed |
+| `cartservice` .NET thread-pool minimum (G6 Treatment A) | `ProcessorCount` (= 1 at 300m) | **32** (`DOTNET_ThreadPool_ForceMinWorkerThreads=0x20`, hex) | `golden_overrides` `env.<NAME>` key; CPU limit unchanged |
 
 - **Housekeeping.** With the default interval the newest cAdvisor sample was a median 12 s / p95 21 s old at query time, so `rate(...[30s])` at the live edge returned nothing for 8–46 % of evaluations per managed deployment. §5.5 would mark those ticks stale and truncate episodes.
 - **Frontend limit.** At the 50-user baseline the 200m frontend was ~99 % CFS-throttled before any fault. That would have made the baseline itself unhealthy and blurred F4 (surge) with steady-state saturation. Frontend stays the intended F4 bottleneck; this is re-checked by the F4 fault smoke in M3.

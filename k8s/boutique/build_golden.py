@@ -4,7 +4,8 @@ Transformations (PLAN.md M1):
   * drop the `loadgenerator` Deployment and its ServiceAccount;
   * convert Service `frontend-external` from LoadBalancer to NodePort 30080;
   * set explicit replicas: contract `replicas.base` for managed services, 1 for the rest;
-  * apply `golden_overrides` from config/contract.yaml (resource values, or a digest-pinned image);
+  * apply `golden_overrides` from config/contract.yaml (resource values, a digest-pinned image,
+    or `env.<NAME>` container environment variables);
   * stamp every object with the contract namespace.
 
 Output is deterministic for a given (upstream, contract) pair. The output file is
@@ -20,6 +21,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -42,6 +44,9 @@ OVERRIDE_KEYS: dict[str, tuple[str, str]] = {
 }
 IMAGE_KEY = "image"                 # golden_overrides image pin; must carry an @sha256: digest
 DIGEST_MARK = "@sha256:"
+ENV_PREFIX = "env."                 # golden_overrides "env.<NAME>": set container env var NAME
+ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+FAULT_ENV = "EXTRA_LATENCY"         # F1's fault variable; never part of the golden state
 
 
 class GoldenBuildError(RuntimeError):
@@ -90,11 +95,18 @@ def _override_container(dep: dict[str, Any]) -> dict[str, Any]:
 
 def _apply_overrides(dep: dict[str, Any], spec: dict[str, Any]) -> None:
     name = dep["metadata"]["name"]
-    unknown = set(spec) - set(OVERRIDE_KEYS) - {IMAGE_KEY}
+    unknown = {k for k in spec if k not in OVERRIDE_KEYS and k != IMAGE_KEY and not k.startswith(ENV_PREFIX)}
     if unknown:
         raise GoldenBuildError(f"{name}: unknown golden_overrides keys {sorted(unknown)}")
     container = _override_container(dep)
     for key, value in spec.items():
+        if key.startswith(ENV_PREFIX):
+            var = key[len(ENV_PREFIX):]
+            if not ENV_NAME_RE.match(var) or var == FAULT_ENV:
+                raise GoldenBuildError(f"{name}: invalid golden_overrides env var {var!r}")
+            env = container.setdefault("env", [])
+            env[:] = [e for e in env if e.get("name") != var] + [{"name": var, "value": str(value)}]
+            continue
         if key == IMAGE_KEY:
             if DIGEST_MARK not in str(value):
                 raise GoldenBuildError(f"{name}: image override must be digest-pinned ({DIGEST_MARK}...), got {value!r}")

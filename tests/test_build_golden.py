@@ -36,7 +36,17 @@ def test_resource_override_targets_server_container():
     assert server["resources"]["limits"]["cpu"] == "400m" and sidecar == before
 
 
-@pytest.mark.parametrize("spec", [{"image": "redis:alpine"}, {"gpu": "1"}])
+@pytest.mark.parametrize("spec", [{"image": "redis:alpine"}, {"gpu": "1"},
+                                  {"env.EXTRA_LATENCY": "1s"}, {"env.1BAD": "x"}])
 def test_bad_overrides_rejected(spec):
     with pytest.raises(bg.GoldenBuildError):
         bg._apply_overrides(deployment("redis-cart", ["redis"]), spec)
+
+
+def test_env_override_sets_or_replaces_variable():
+    dep = deployment("cartservice", ["server"])
+    dep["spec"]["template"]["spec"]["containers"][0]["env"] = [{"name": "REDIS_ADDR", "value": "redis-cart:6379"},
+                                                               {"name": "KNOB", "value": "old"}]
+    bg._apply_overrides(dep, {"env.KNOB": "new", "env.DOTNET_ThreadPool_ForceMinWorkerThreads": "0x20"})
+    env = {e["name"]: e["value"] for e in dep["spec"]["template"]["spec"]["containers"][0]["env"]}
+    assert env == {"REDIS_ADDR": "redis-cart:6379", "KNOB": "new", "DOTNET_ThreadPool_ForceMinWorkerThreads": "0x20"}
