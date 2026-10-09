@@ -10,3 +10,4 @@ pytest==9.1.1
 ruff==0.16.9
 numpy==2.4.6                   # added M3 (observations are np.float32, CLAUDE.md §7)
 grpcio==1.84.0                 # added M3 (scripts/grpc_probe.py: direct gRPC probes for G6 stall attribution)
+gymnasium==1.4.0              # added M3 (env/boutique_env.py is a gymnasium.Env, CLAUDE.md §5.3)
