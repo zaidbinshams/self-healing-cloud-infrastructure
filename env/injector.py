@@ -11,6 +11,7 @@ it must never reach the observation or the mask (§4.1.4).
 from __future__ import annotations
 
 import random
+import re
 import time
 from collections import Counter
 from collections.abc import Mapping
@@ -34,6 +35,7 @@ APP_CONTAINER = "server"
 CHAOS_GROUP, CHAOS_VERSION, CHAOS_PLURAL = "chaos-mesh.org", "v1alpha1", "stresschaos"
 STRESS_LOAD_PCT = 100                 # §5.10 manifest: stressors.cpu.load
 STRESS_DURATION = "30m"               # §5.10 manifest: the CR is deleted at cure, long before this
+K8S_NAME_MAX = 63                     # RFC 1123 label: lowercase alphanumerics and '-', <= 63 chars
 
 
 @dataclass(frozen=True)
@@ -90,6 +92,14 @@ def f2_cured(stressed_uid: str, raw: RawTick, target: str) -> bool | None:
 def f3_cured(raw: RawTick, target: str) -> bool:
     st = raw.deployments.items.get(target) if raw.deployments.ok else None
     return st is not None and st.available_replicas >= 1
+
+
+def chaos_name(run: str, episode: int) -> str:
+    """StressChaos object name `f2-<run>-<episode>` made RFC-1123 valid (run names may contain '_')."""
+    suffix = f"-{episode}"
+    body = re.sub(r"[^a-z0-9-]+", "-", f"f2-{run}".lower()).strip("-")
+    body = re.sub(r"-{2,}", "-", body)[: K8S_NAME_MAX - len(suffix)].rstrip("-")
+    return body + suffix
 
 
 def surge_users(multiplier: float, u_base: int) -> int:
@@ -179,7 +189,7 @@ class Injector:
                     return self._remember(self._failed("F2", "precondition", f"{len(running)} running pods of "
                                                        f"{p.target}, need exactly 1", k))
                 self.stressed_uid = running[0].metadata.uid
-                self.chaos_name = f"f2-{self.run}-{self.episode}".lower()
+                self.chaos_name = chaos_name(self.run, self.episode)
                 t = time.time()
                 self.custom.create_namespaced_custom_object(
                     CHAOS_GROUP, CHAOS_VERSION, self.ns, CHAOS_PLURAL,
@@ -206,8 +216,9 @@ class Injector:
         except (ValueError, KeyError) as exc:
             res = self._failed(p.fault, f"parse:{type(exc).__name__}", str(exc), k)
         if res.ok:
-            self.events.emit("injected", component="injector", tick=k, fault=p.fault, target=p.target,
-                             severity=p.severity, t_inject_wall=res.t_inject_wall, **res.detail)
+            fields = {"fault": p.fault, "target": p.target, "severity": p.severity,
+                      "t_inject_wall": res.t_inject_wall, **res.detail}   # one dict: detail may repeat keys
+            self.events.emit("injected", component="injector", tick=k, **fields)
         return self._remember(res)
 
     def _remember(self, res: InjectResult) -> InjectResult:

@@ -87,6 +87,7 @@ class EpisodeState:
     t_inject_wall: float | None = None
     k_inject: int | None = None
     recovered_at: int | None = None
+    inject_failed: bool = False
     done: bool = False
 
 
@@ -297,6 +298,11 @@ class BoutiqueEnv(gym.Env):
         inject = self.injector.on_tick(k)
         if inject is not None and inject.ok and inject.t_inject_wall is not None:
             ep.t_inject_wall, ep.k_inject = inject.t_inject_wall, k
+        elif inject is not None and not inject.ok:
+            # No fault was injected: the episode cannot measure anything; end it as invalid (never run on).
+            ep.inject_failed, valid = True, False
+            self.events.emit("episode_invalid", component="env", tick=k, reason="inject_failed",
+                             error_type=inject.error_type)
         self.clock.wait_boundary(k + 1)
         raw = self.collector.collect(k, self.clock.wall(k), self.clock.wall(k + 1))
 
@@ -334,6 +340,8 @@ class BoutiqueEnv(gym.Env):
         terminated, truncated, mttr_s = self._done_flags(k)
         if ep.stale_run >= self.c.telemetry.stale_truncate_ticks:
             truncated, valid = True, False
+        if ep.inject_failed:
+            valid = False
         mask_next = compute_mask(self._spec(features), lock_held=ep.lock is not None, contract=self.c)
 
         info = {
@@ -341,6 +349,7 @@ class BoutiqueEnv(gym.Env):
             "a_chosen": a_chosen, "a_exec": a_exec, "exec_error": exec_error, "late": late, "valid": valid,
             "stale": features.stale, "decision_latency_s": decision_latency_s, "inflight": ep.lock is not None,
             "cured": cured, "recovered": ep.recovered_at is not None, "mttr_s": mttr_s,
+            "inject_failed": ep.inject_failed,
         }
         assert self.recorder is not None
         self.recorder.append({
@@ -378,6 +387,8 @@ class BoutiqueEnv(gym.Env):
         ep = self.ep
         assert ep is not None
         e = self.c.episode
+        if ep.inject_failed:
+            return False, True, None
         if ep.plan.fault == "NULL":
             return False, k >= ep.plan.lead_in + e.null_extra_ticks, None
         if ep.k_inject is None:

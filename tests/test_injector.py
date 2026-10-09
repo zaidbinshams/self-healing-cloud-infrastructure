@@ -89,3 +89,30 @@ def test_f3_cure_when_a_replica_is_available(steady_raw):
                                                    available_replicas=0)
     zero = dataclasses.replace(raw, deployments=dataclasses.replace(raw.deployments, items=items))
     assert not f3_cured(zero, "currencyservice")
+
+
+def test_chaos_name_is_rfc1123_valid():
+    import re
+
+    from env.injector import chaos_name
+    for run, ep in [("fault_smoke-F2-20261009T170118", 1), ("A__B..C", 12), ("x" * 100, 345)]:
+        n = chaos_name(run, ep)
+        assert re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", n) and len(n) <= 63, n
+        assert n.endswith(f"-{ep}")
+    assert chaos_name("fault_smoke-F2-20261009T170118", 1) == "f2-fault-smoke-f2-20261009t170118-1"
+
+
+def test_f1_injected_event_does_not_duplicate_fields(contract):
+    """Regression (2026-10-09): F1's detail repeated `severity`, crashing on_tick after the patch."""
+    from kubernetes import client
+
+    from env.injector import FaultPlan, Injector
+    from env.recorder import EventLog
+    events = EventLog(None)
+    inj = Injector(contract, client.ApiClient(client.Configuration()), "http://loc.invalid", 33, "t", events)
+    inj.apps.patch_namespaced_deployment = lambda *a, **kw: None          # only the I/O call is stubbed
+    inj.arm(FaultPlan("F1", "productcatalogservice", "600ms", lead_in=2), 1)
+    res = inj.on_tick(2)
+    assert res is not None and res.ok and res.fault == "F1"
+    injected = [e for e in events.events if e["event"] == "injected"]
+    assert len(injected) == 1 and injected[0]["severity"] == "600ms"

@@ -74,3 +74,11 @@ def test_truth_only_in_info(env):
     truth = env._truth()
     assert truth == {"fault": "F1", "target": "productcatalogservice", "severity": "600ms", "lead_in": 2}
     assert env.observation_space["obs"].shape == (36,) and env.action_space.n == 12
+
+
+def test_failed_injection_truncates_instead_of_running_forever(env):
+    anchored(env)
+    env.ep = EpisodeState(1, FaultPlan("F2", "cartservice", 1, lead_in=2))
+    env.ep.inject_failed = True                       # k_inject stays None: no fault was injected
+    env.ep.health, env.ep.cured = [True] * 5, [False] * 5
+    assert env._done_flags(2) == (False, True, None)

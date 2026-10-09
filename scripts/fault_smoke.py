@@ -120,6 +120,9 @@ def main(argv: list[str] | None = None) -> int:
     max_lat = max((t["latency_ms"] for t in fault_ticks), default=0.0)
     max_fail = max((t["fail"] for t in fault_ticks), default=0.0)
     detectable = max_lat > cal.l_sla_ms or max_fail > c.sla.e_sla
+    if last.get("inject_failed"):
+        result["inject_failed"] = True
+        print("fault_smoke: injection FAILED (see the run's events log); episode ended as invalid", file=sys.stderr)
     result.update({"acted_at_tick": acted_at, "fault_ticks_observed": fault_ticks, "max_latency_before_remedy_ms": max_lat,
                    "max_fail_before_remedy": max_fail, "detectable": detectable, "cured": last.get("cured"),
                    "recovered": last.get("recovered"), "mttr_s": last.get("mttr_s"),
