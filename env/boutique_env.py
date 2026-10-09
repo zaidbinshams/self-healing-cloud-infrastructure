@@ -394,3 +394,25 @@ class BoutiqueEnv(gym.Env):
         self.collector.close()
         self.dispatch_pool.shutdown(wait=True)
         super().close()
+
+
+def make_env(run: str, seed: int, *, faults_enabled: bool = True, check_calibration: bool = True) -> BoutiqueEnv:
+    """Build the env from config/ and the cluster.env variables. The only place agents/ gets an env:
+    both API clients (agent + controller) are created here, inside env/ (§4.2.4)."""
+    import os
+
+    from env.contract import load_calibration, load_contract, load_limits
+    from env.golden import load_golden
+    from env.telemetry import make_api_client
+
+    contract = load_contract()
+    calibration = load_calibration(check_fresh=check_calibration)
+    missing = [v for v in ("KUBE_AGENT", "KUBE_CTRL", "PROM_URL", "LOCUST_URL") if not os.environ.get(v)]
+    if missing:
+        raise RuntimeError(f"unset {missing} (source config/cluster.env)")
+    events = EventLog(REPO_ROOT / "data" / "logs" / f"{run}.events.jsonl")
+    return BoutiqueEnv(contract=contract, calibration=calibration, golden=load_golden(contract),
+                       limits=load_limits(contract), agent_api=make_api_client(os.environ["KUBE_AGENT"]),
+                       controller_api=make_api_client(os.environ["KUBE_CTRL"]), prom_url=os.environ["PROM_URL"],
+                       locust_url=os.environ["LOCUST_URL"], run=run, seed=seed, events=events,
+                       faults_enabled=faults_enabled)
