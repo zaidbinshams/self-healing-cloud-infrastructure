@@ -299,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     for name, r in report.items():
         line = (f"{name:12s} {r['n']:5d} {r['errors']:4d} {r['p50_ms']:6.1f} {r['p99_ms']:6.1f} {r['max_ms']:7.1f} "
                 f"{r['spike_share']:7.2%}")
-        if stalls:
+        if stalls and "inside_p50_ms" in r:
             line += (f"  | {r['inside_p50_ms']:6.1f}/{r['inside_max_ms']:7.1f}  {r['outside_p50_ms']:5.1f}/{r['outside_p99_ms']:6.1f}"
                      f"   {r['stalls_with_spike']:3d}/{r['stalls_covered']:<3d}          {r['spikes_inside_stalls']}/{r['spikes_total']}")
         print(line)
