@@ -7,8 +7,11 @@
    proportionally until it lies in contract `calibration.frontend_util_band`.
 3. Steady window at U_base for --minutes: record every tick (data/calibration/<stamp>.jsonl).
 4. From non-stale steady ticks:  L_SLA = ceil_10ms(l_sla_factor · q95(tick SLA latency)),
-   RPS_base = median RPS.  Gate G6 (PLAN.md M3): CV(tick SLA latency) < 0.25 and < 2 % of ticks breach
-   the SLA. calibration.json is written ONLY if G6 passes; otherwise exit 1 with diagnostics.
+   RPS_base = median RPS.  Gate G6 (PLAN.md M3): CV(tick SLA latency) < 0.30 [override; design 0.25] and
+   < 2 % of ticks breach the SLA. calibration.json is written ONLY if G6 passes; otherwise exit 1.
+
+--from-ticks <stamp>.jsonl recomputes steps 4 from an earlier run's recorded ticks and summary (no new
+measurement; same code path), keeping that run's git SHA and time as provenance.
 
 Locust user changes are local to Machine B (POST /swarm); nothing on the cluster is mutated.
 Exempt from the calibration.json startup requirement (it creates the file, §7).
@@ -28,6 +31,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -45,7 +49,10 @@ from env.golden import load_golden, template_hash
 from env.recorder import EventLog
 from env.telemetry import Collector, ImputeState, impute, make_api_client
 
-G6_MAX_CV = 0.25                 # PLAN.md M3 gate G6
+# [override] documented gate: CV < 0.25 (PLAN.md M3 G6). Human-approved 2026-10-09 (CLAUDE.md §2): three
+# calibrations passed the breach criterion but failed CV on rare slow ticks (server p95 run: 0.292; 0.237
+# without its single slowest tick); the SLA they produce is tight (60 ms ≈ 2.4 x median), not loose.
+G6_MAX_CV = 0.30
 G6_MAX_BREACH_SHARE = 0.02       # PLAN.md M3 gate G6: < 2 % of NULL ticks breach the SLA
 L_SLA_ROUND_MS = 10              # CLAUDE.md §5.1: ceil to 10 ms
 FRONTEND = "frontend"
@@ -128,12 +135,17 @@ def verify_golden(contract: Any) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--minutes", type=float, required=True, help="steady window length")
+    ap.add_argument("--minutes", type=float, help="steady window length (required unless --from-ticks)")
+    ap.add_argument("--from-ticks", type=Path, help="recompute from a recorded data/calibration/<stamp>.jsonl")
     ap.add_argument("--start-users", type=int, default=40)
     ap.add_argument("--warmup-ticks", type=int, default=2)
     ap.add_argument("--probe-ticks", type=int, default=6)
     ap.add_argument("--max-search", type=int, default=8)
     args = ap.parse_args(argv)
+    if args.from_ticks is not None:
+        return finalize_from_recording(args.from_ticks)
+    if args.minutes is None:
+        ap.error("--minutes is required unless --from-ticks is given")
     missing = [v for v in ("KUBE_AGENT", "PROM_URL", "LOCUST_URL") if not os.environ.get(v)]
     if missing:
         ap.error(f"unset {missing} (source config/cluster.env)")
@@ -183,6 +195,14 @@ def main(argv: list[str] | None = None) -> int:
     steady = cal.ticks(n_steady)
     ticks_path = out_dir / f"{stamp}.jsonl"
     ticks_path.write_text("".join(json.dumps(t) + "\n" for t in steady))
+    return finalize(contract, steady, u_base, search, stamp, ticks_path, _git("rev-parse", "HEAD"),
+                    datetime.now(timezone.utc).isoformat())
+
+
+def finalize(contract: Any, steady: list[dict[str, Any]], u_base: int, search: list[dict[str, Any]], stamp: str,
+             ticks_path: Path, git_sha: str, measured_at: str) -> int:
+    """Steps 4: L_SLA, RPS_base, gate G6; write the summary, and calibration.json iff G6 passes."""
+    out_dir = REPO_ROOT / "data" / "calibration"
     valid = [t for t in steady if not t["stale"]]
     lats, fails = [t["latency_ms"] for t in valid], [t["fail"] for t in valid]
     l_sla = l_sla_from(lats, contract.sla.l_sla_factor)
@@ -194,7 +214,8 @@ def main(argv: list[str] | None = None) -> int:
         "sla_quantile": contract.sla.latency_quantile,
         "latency_median_ms": statistics.median(lats), "latency_q95_ms": quantile_nearest_rank(lats, 0.95),
         "frontend_util_median": statistics.median(t["frontend_util"] for t in valid), "g6": gate,
-        "ticks_file": str(ticks_path.relative_to(REPO_ROOT)), "git_sha": _git("rev-parse", "HEAD"),
+        "ticks_file": str(ticks_path.relative_to(REPO_ROOT)), "git_sha": git_sha, "measured_at": measured_at,
+        "g6_max_cv": G6_MAX_CV,
     }
     (out_dir / f"{stamp}.summary.json").write_text(json.dumps(summary, indent=1))
     print(json.dumps({k: summary[k] for k in ("u_base", "l_sla_ms", "rps_base", "valid_ticks", "stale_share",
@@ -207,10 +228,27 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     CALIBRATION_PATH.write_text(json.dumps({
         "l_sla_ms": l_sla, "rps_base": rps_base, "u_base": u_base,
-        "calibrated_at": datetime.now(timezone.utc).isoformat(), "env_git_sha": summary["git_sha"],
+        "calibrated_at": measured_at, "env_git_sha": git_sha,
     }, indent=2) + "\n")
     print(f"wrote {CALIBRATION_PATH} (commit it with a CONTRACT-CHANGE line)")
     return 0
+
+
+
+
+def finalize_from_recording(ticks_path: Path) -> int:
+    """Recompute an earlier run's result from its recorded ticks + summary; nothing is re-measured."""
+    contract = load_contract()
+    summary_path = ticks_path.with_name(ticks_path.name.replace(".jsonl", ".summary.json"))
+    prior = json.loads(summary_path.read_text())
+    steady = [json.loads(line) for line in ticks_path.read_text().splitlines() if line.strip()]
+    if len(steady) != prior["steady_ticks"]:
+        print(f"calibrate: {ticks_path} has {len(steady)} ticks, summary says {prior['steady_ticks']}", file=sys.stderr)
+        return 2
+    measured_at = prior.get("measured_at") or datetime.strptime(prior["stamp"], "%Y%m%dT%H%M%S").astimezone(
+        timezone.utc).isoformat()
+    return finalize(contract, steady, int(prior["u_base"]), prior["search"], prior["stamp"], ticks_path,
+                    prior["git_sha"], measured_at)
 
 
 if __name__ == "__main__":

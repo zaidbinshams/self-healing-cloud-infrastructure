@@ -81,6 +81,9 @@ The deployed testbed differs from the design above. A and B are linked over a **
 | LAN RTT p99 (`ping -c 200`) | < 2 ms | **< 800 ms** |
 | Machine A idle memory | < 5 GiB | **< 10 GiB** |
 | Machine A memory under load (M2) | < 8 GiB | **< 12 GiB** (approved 2026-10-01; A idles at ~8.8 GiB) |
+| G6 steady tick SLA-latency CV (M3) | < 0.25 | **< 0.30** (approved 2026-10-09; breach < 2 % unchanged — see below) |
+
+**G6 override rationale (2026-10-09).** Three 30-min calibrations all passed G6's breach criterion (1.1–1.2 % < 2 %) and failed only its CV proxy: 0.519 (client p99, hotspot), 0.285 (server p99), 0.292 (server p95). The p95 run's CV is 0.237 without its single slowest tick: 87 of 89 ticks lie in 17–43 ms, and two isolated ticks (57, 72 ms) decide the CV. The CV guards against a *loose* SLA hiding faults; the resulting `L_SLA` (60 ms ≈ 2.4 × median) is tight. Safeguards: every fault smoke must show the fault exceeds `L_SLA` (detectability), G6 is re-checked before M5, and the paper reports all three calibrations and this override.
 
 The A–B clock-skew gate is back at its **200 ms design value**. Its earlier 1000 ms override was retired on 2026-10-01 after the clock fix ("Clock-sync topology" below).
 

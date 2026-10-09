@@ -29,10 +29,11 @@ A and B share a wireless hotspot, and A runs other workloads at the same time. P
 | LAN RTT p99 | < 2 ms | < 800 ms |
 | A idle memory | < 5 GiB | < 10 GiB |
 | A memory under load (M2) | < 8 GiB | < 12 GiB |
+| G6 steady SLA-latency CV (M3) | < 0.25 | < 0.30 (2026-10-09; breach < 2% unchanged) |
 
 A–B clock skew uses the **200 ms design gate**. Its 1000 ms override was retired on 2026-10-01.
 
-No other gate is relaxed.
+No other gate is relaxed. The G6 CV override and its safeguards are explained in `CLAUDE.md` §2.
 
 **Cluster tuning (human-approved 2026-10-02).** Kubelet cAdvisor housekeeping on A is 5 s (`[A] sudo bash k8s/k3s/kubelet-housekeeping.sh`), so the 30 s rate window is never empty at the live edge. `frontend` (400m), `currencyservice` (300m) and the non-managed `recommendationservice` (500m, M3 G6 test) run with raised CPU limits (`golden_overrides`), so the baseline is not CPU-starved. The upstream `redis:alpine` tag floats, so `redis-cart` is pinned by digest to `redis:8.10.2-alpine` (the image it was already running). Details: `CLAUDE.md` §2 "Cluster tuning".
 
@@ -373,7 +374,7 @@ Then validate it end-to-end with the **scripted runbook**. Calibrate the SLA, pa
 | G3 Faults | Runbook recovers ≥ 95% of F1–F4 episodes within 18 ticks |
 | G4 Safety | Zero runbook actions in NULL episodes (FRR = 0) |
 | G5 Reset | ≥ 98% of resets succeed without hard reset |
-| G6 Signal | CV of steady-state tick SLA latency (server-side p95, `CLAUDE.md` §5.6) < 0.25; < 2% of NULL ticks breach the SLA |
+| G6 Signal | CV of steady-state tick SLA latency (server-side p95, `CLAUDE.md` §5.6) < 0.30 [override; design 0.25]; < 2% of NULL ticks breach the SLA |
 | G7 Calibration | F4 bottleneck = frontend; every F2 severity yields throttle ≥ 0.40 |
 
 ### Validate

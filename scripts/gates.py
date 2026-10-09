@@ -32,7 +32,7 @@ G2_MAX_STALE_SHARE = 0.01
 G3_MIN_RECOVERY = 0.95
 G4_MAX_NULL_ACTIONS = 0
 G5_MIN_CLEAN_RESETS = 0.98
-G6_MAX_CV = 0.25
+G6_MAX_CV = 0.30                # [override] documented gate 0.25; human-approved 2026-10-09 (CLAUDE.md §2)
 G6_MAX_NULL_BREACH = 0.02
 
 
@@ -98,7 +98,7 @@ def g6(cal_summary: dict[str, Any] | None, episodes: list[dict[str, Any]],
     breach = (sum(1 for f in ticks if f["latency_ms"] > l_sla_ms or f["fail_ratio"] > e_sla) / len(ticks)
               if ticks else float("nan"))
     return Gate("G6 Signal", cv < G6_MAX_CV and breach < G6_MAX_NULL_BREACH,
-                f"steady tick SLA-latency CV {cv:.3f} (< 0.25, calibration); NULL-tick SLA breaches {breach:.2%} "
+                f"steady tick SLA-latency CV {cv:.3f} (< {G6_MAX_CV} [override], calibration); NULL-tick SLA breaches {breach:.2%} "
                 f"of {len(ticks)} (< 2%)")
 
 

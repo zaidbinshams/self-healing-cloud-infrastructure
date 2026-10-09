@@ -45,8 +45,8 @@ def test_g5_reset_success():
 def test_g6_cv_and_null_breaches():
     eps = [{"episode": 1, "fault": "NULL"}]
     calm = [[tick(1, k, k, p99=100.0) for k in range(100)]]
-    assert g6({"g6": {"cv": 0.2}}, eps, calm, 200.0, 0.01).ok
-    assert not g6({"g6": {"cv": 0.3}}, eps, calm, 200.0, 0.01).ok
+    assert g6({"g6": {"cv": 0.29}}, eps, calm, 200.0, 0.01).ok          # [override] limit 0.30
+    assert not g6({"g6": {"cv": 0.31}}, eps, calm, 200.0, 0.01).ok
     breachy = [[tick(1, k, k, p99=300.0 if k < 3 else 100.0) for k in range(100)]]   # 3%
     assert not g6({"g6": {"cv": 0.2}}, eps, breachy, 200.0, 0.01).ok
 

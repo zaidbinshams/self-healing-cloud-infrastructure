@@ -147,4 +147,14 @@ M3 builds the **real-cluster Gymnasium environment** and proves it end-to-end wi
 - **Pre-experiment freeze** declared (PLAN.md §0.2). The synthetic prototype moved to branch `prototype/synthetic-model`. Evaluation protocol: interleaved, 50 episodes per policy, mandatory cold-start ablation.
 - **UNFREEZE 2026-10-09:** the SLA quantile p99 → p95, after calibration #2 failed G6 narrowly (CV 0.285) and a bootstrap attributed ~0.145 CV per tick to p99 sampling noise alone. G6's threshold is unchanged. Superseded: fixture e62bcb5 and calibration attempt 20261009T144632.
 
+- **G6 override (human-approved 2026-10-09):** CV limit 0.25 → 0.30, breach criterion unchanged. Calibrations:
+
+  | # | SLA latency | CV | breach |
+  |---|---|---|---|
+  | 1 | client p99 | 0.519 | 1.1% |
+  | 2 | server p99 | 0.285 | 1.2% |
+  | 3 | server p95 | 0.292 | 1.1% |
+
+  Run 3's CV is 0.237 without its single slowest tick. Run 3's recorded data is the calibration (U_base 33, L_SLA 60 ms). All three are to be reported in the paper.
+
 *(Append the M3 summary here when its exit gate passes.)*

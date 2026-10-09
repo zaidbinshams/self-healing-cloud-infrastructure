@@ -31,3 +31,8 @@ def test_g6_gate():
     r = g6(jittery, [0.0] * 5, 1000.0, 0.01)
     assert not r["pass"] and r["cv"] > 0.25
     assert g6(stable, [0.0, 0.0, 0.0, 0.0, 0.5], 200.0, 0.01)["breach_share"] == pytest.approx(0.2)
+
+
+def test_g6_override_threshold():
+    from scripts.calibrate import G6_MAX_CV
+    assert G6_MAX_CV == 0.30                              # human-approved [override], documented gate 0.25
