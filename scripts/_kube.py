@@ -7,7 +7,6 @@ Clients are built with library-level retries disabled (CLAUDE.md §4.3.2); calle
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +19,12 @@ GOLDEN_YAML_PATH = REPO_ROOT / "k8s" / "boutique" / "golden.yaml"
 GOLDEN_LIVE_PATH = REPO_ROOT / "config" / "golden_live.json"
 SNAPSHOT_BASE_PATH = REPO_ROOT / "k8s" / "boutique" / "snapshot-base.json"
 
-RESTARTED_AT_ANNOTATION = "kubectl.kubernetes.io/restartedAt"
+# Golden hashing lives in env/golden.py (single source for snapshot, preflight and RESTORE).
+from env.golden import (  # noqa: F401
+    RESTARTED_AT_ANNOTATION,
+    strip_restarted_at,
+    template_hash,
+)
 
 
 def load_contract(path: Path = CONTRACT_PATH) -> dict[str, Any]:
@@ -41,25 +45,6 @@ def api_client(kubeconfig: str | Path) -> client.ApiClient:
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def strip_restarted_at(template: dict[str, Any]) -> dict[str, Any]:
-    """Return a copy of a pod template (API JSON form) without the restartedAt annotation."""
-    tpl = json.loads(json.dumps(template))
-    meta = tpl.get("metadata") or {}
-    annotations = meta.get("annotations") or {}
-    annotations.pop(RESTARTED_AT_ANNOTATION, None)
-    if annotations:
-        meta["annotations"] = annotations
-    else:
-        meta.pop("annotations", None)
-    return tpl
-
-
-def template_hash(template: dict[str, Any]) -> str:
-    """sha256 over canonical JSON of the template, ignoring restartedAt (CLAUDE.md §5.2)."""
-    canonical = json.dumps(strip_restarted_at(template), sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 def rollout_complete(dep: client.V1Deployment) -> bool:
