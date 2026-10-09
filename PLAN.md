@@ -38,6 +38,19 @@ No other gate is relaxed.
 
 **Clock-sync topology (human-approved 2026-10-01).** A is the NTP server and B follows it through the Windows host's w32time. B's `time.time()` remains the timestamp source. Measured skew is about 7 ms. Setup and rationale: `CLAUDE.md` §2 "Clock-sync topology".
 
+### 0.2 Pre-Experiment Freeze (Human-Approved 2026-10-09)
+
+Every locked-file change made before this date is **pre-experiment tuning**, documented in `CLAUDE.md` §2 ("Cluster tuning", "Measurement point") and in the `CONTRACT-CHANGE` commits. That covers the frontend, currency and recommendationservice limits, the redis pin, cartservice thread-pool minimum, quoted `NULL`, the U_base band, and server-side SLA latency. From now on:
+
+- **`config/contract.yaml` is frozen** once `feat/server-side-latency` is merged into `main`.
+- **`config/calibration.json` is frozen** the moment `scripts/calibrate.py` writes it (G6-gated).
+- **`eval/schedules/eval_v1.json` is frozen** the moment it is generated.
+- Any further change is an **unfreeze**:
+  - it needs explicit human approval, recorded as `UNFREEZE: <reason>` (in addition to `CONTRACT-CHANGE:`) in the commit message;
+  - it gets an entry in `reports/rolling_project_log.md`;
+  - it invalidates every run collected under the previous version for the affected comparisons; those runs are redone, never mixed.
+- M3 fault smoke tests (G7) are the last point where an unfreeze is still expected, for example if a fault severity turns out undetectable. No unfreeze is allowed once M4 training starts.
+
 ### `config/cluster.env` (create first, fill in real values)
 
 ```bash
@@ -78,19 +91,20 @@ Budget arithmetic:
 | M3 warm-start collection (ε = 0.25) | 120 | ~0.8 day |
 | M4 SAC uniform, seeds 0/1/2 | 3 × 300 | ~6 days |
 | M4 SAC PER, seeds 0/1/2 | 3 × 300 | ~6 days |
-| M5 evaluation (9 policies × 30 episodes) | 270 | ~2 days |
+| **M4 SAC PER cold-start, seed 0 (mandatory ablation)** | 1 × 300 | ~2 days |
+| M5 evaluation (10 policies × 50 episodes, interleaved) | 500 | ~3.5 days |
 
 ### Execution order for M4
 
 Run the M4 jobs **interleaved**, so a paired comparison exists even if you run out of time:
 
 ```
-uniform s0 → per s0 → uniform s1 → per s1 → uniform s2 → per s2
+uniform s0 → per s0 → per_cold s0 → uniform s1 → per s1 → uniform s2 → per s2
 ```
 
-If you fall behind, drop `uniform s2` first, then `per s2`.
+**Fallback (human decision 2026-10-09):** if wall-clock budget runs short, drop the seed-2 training runs (`uniform s2`, then `per s2`) to pay for the M5 evaluation budget. Never cut the evaluation's 50 episodes per policy or the cold-start pair.
 
-PPO and cold-start ablations run **only** if budget remains after the paired runs.
+The **cold-start ablation is mandatory**: `per_cold s0` is PER-iSAC with the same seed, contract and calibration as `per s0`, but no runbook warm-start (empty buffer, no offline phase). The pair (`per s0`, `per_cold s0`) is the minimum evidence for any claim that runbook warm-starting helps. PPO runs **only** if budget remains after the paired runs.
 
 ---
 
@@ -381,11 +395,12 @@ ls data/warmstart/episodes/*.jsonl | wc -l                  # ≥ 120 valid epis
 
 ### Objective
 
-Build a masked discrete SAC in Tianshou, warm-started from the runbook buffer, and train it in two configurations:
-1. **uniform replay** (the ablation),
-2. **full PER**.
+Build a masked discrete SAC in Tianshou, warm-started from the runbook buffer, and train it in three configurations:
+1. **uniform replay** (the PER ablation), 3 seeds;
+2. **full PER**, 3 seeds;
+3. **full PER, cold-start** (the warm-start ablation), **mandatory**, at least seed 0.
 
-Both use 3 seeds each and the interleaved run order from §2.
+All runs follow the interleaved order and the fallback rule in §2.
 
 ### Files
 
@@ -449,6 +464,7 @@ python -m scripts.gates --run data/runs/sac_per_s0 --only G1,G2,G5
 ### Exit Gate M4
 
 - At least the seed-0 and seed-1 pairs (uniform and PER) have completed with final checkpoints.
+- The cold-start pair (`per s0`, `per_cold s0`) has completed with final checkpoints.
 - Each PER run's greedy probe beats the NOOP baseline on every fault type, with FRR ≤ 5%.
 - No unexplained α divergence occurred.
 
@@ -460,7 +476,11 @@ python -m scripts.gates --run data/runs/sac_per_s0 --only G1,G2,G5
 
 Measure every policy on one fixed, seeded fault schedule, on the same machines and calibration, using the greedy policy. Then produce statistically defensible MTTR and SLA comparisons.
 
-### Policies Under Test (9)
+**Protocol (human-approved 2026-10-09):**
+- **50 episodes per policy:** 10 each of F1–F4 plus 10 NULL. This gives the per-fault Mann–Whitney tests and bootstrap CIs usable power.
+- **Interleaved across policies.** Schedule episode *i* is run for every policy, in a seeded random policy order, before episode *i + 1*. Machine A is a shared host, so this keeps time-of-day and host-load drift from aligning with any one policy.
+
+### Policies Under Test (10)
 
 | Tag | What it is |
 |---|---|
@@ -469,17 +489,19 @@ Measure every policy on one fixed, seeded fault schedule, on the same machines a
 | `runbook` | Scripted runbook, ε = 0 |
 | `sac_uniform_s{0,1,2}` | Final checkpoints, greedy |
 | `sac_per_s{0,1,2}` | Final checkpoints, greedy |
+| `sac_per_cold_s0` | Cold-start ablation, final checkpoint, greedy |
 
 ### Files
 
 | Path | Purpose |
 |---|---|
 | `k8s/hpa/hpa-baseline.yaml` | HPA objects for the `k8s_hpa` baseline only |
-| `eval/make_schedule.py` | Fixed schedule: 6 episodes each of F1–F4 (targets and severities balanced) + 6 NULL = 30; seed 2026 |
+| `eval/make_schedule.py` | Fixed schedule: 10 episodes each of F1–F4 (targets and severities balanced) + 10 NULL = 50; seed 2026 |
 | `eval/schedules/eval_v1.json` | Generated, committed, immutable |
-| `eval/run_eval.py` | Runs a policy over the schedule; per-second Locust aggregates kept for fine-grained MTTR; records env git SHA |
+| `eval/run_eval.py` | Runs one policy on given schedule episode indices; per-second Locust aggregates kept for fine-grained MTTR; records env git SHA. Agent/controller clients only, never admin or kubectl (`CLAUDE.md` §4.2) |
+| `scripts/run_eval_interleaved.py` | Orchestrator: for each schedule episode, runs every policy in a seeded random order via `eval/run_eval.py`; applies `k8s/hpa/hpa-baseline.yaml` (admin kubeconfig) only around `k8s_hpa` episodes and deletes it after; resumable |
 | `eval/metrics.py` | Recovery rate, MTTR (median/IQR, censored at 360 s), cumulative SLA penalty Σv, actions per episode, FRR, wasted-action rate |
-| `eval/stats.py` | Mann–Whitney U per fault type; bootstrap 95% CIs; Kaplan–Meier time-to-recovery |
+| `eval/stats.py` | Mann–Whitney U per fault type with Holm correction across comparisons; effect sizes; bootstrap 95% CIs; Kaplan–Meier time-to-recovery |
 | `eval/plots.py` | Figures (list below) |
 
 ### Steps
@@ -489,15 +511,13 @@ git tag eval-v1                                                           # free
 python -m eval.make_schedule --seed 2026 --out eval/schedules/eval_v1.json
 python -m scripts.gates --stage pre-eval                                  # re-check G1, G2, G6 against calibration
 
-python -m eval.run_eval --policy noop --tag k8s_default --schedule eval/schedules/eval_v1.json
-kubectl --kubeconfig $KUBE_ADMIN -n $NS apply  -f k8s/hpa/hpa-baseline.yaml
-python -m eval.run_eval --policy noop --tag k8s_hpa     --schedule eval/schedules/eval_v1.json
-kubectl --kubeconfig $KUBE_ADMIN -n $NS delete -f k8s/hpa/hpa-baseline.yaml
-python -m eval.run_eval --policy runbook --tag runbook  --schedule eval/schedules/eval_v1.json
-for r in sac_uniform_s0 sac_per_s0 sac_uniform_s1 sac_per_s1 sac_uniform_s2 sac_per_s2; do
-  python -m eval.run_eval --policy checkpoint --ckpt data/checkpoints/$r/final.pt --tag $r \
-    --schedule eval/schedules/eval_v1.json
-done
+# Interleaved: episode i for all 10 policies (seeded random order) before episode i+1; HPA objects
+# exist only around k8s_hpa episodes. Resumable under the watchdog.
+nohup bash scripts/watchdog.sh python -m scripts.run_eval_interleaved \
+  --schedule eval/schedules/eval_v1.json --order-seed 2026 \
+  --policies k8s_default k8s_hpa runbook sac_uniform_s0 sac_per_s0 sac_per_cold_s0 \
+             sac_uniform_s1 sac_per_s1 sac_uniform_s2 sac_per_s2 \
+  > data/logs/eval_v1.log 2>&1 &
 
 python -m eval.metrics --in data/eval --out data/eval/summary.csv
 python -m eval.stats   --in data/eval --out data/eval/stats.md
@@ -517,7 +537,7 @@ python -m eval.plots   --in data/eval --out figures/
 ### Validate
 
 ```bash
-python -m eval.metrics --check                # 9 tags × 30 episodes present, all with the same schedule hash and env SHA
+python -m eval.metrics --check                # 10 tags × 50 episodes present (fewer only if seed-2 runs were dropped), all with the same schedule hash, env SHA and calibration hash
 ls figures/                                   # all 7 figures present
 ```
 
