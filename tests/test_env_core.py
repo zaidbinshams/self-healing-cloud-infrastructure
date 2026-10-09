@@ -137,3 +137,20 @@ def test_lock_clearing(contract):
     no_call = Lock(CATALOG[10], "cartservice", 0.0, 100.0, gen_before=3, no_call=True)
     assert lock_should_clear(no_call, status(), 101.0, contract) == "no_call"
     assert math.isfinite(contract.clock.inflight_timeout_s)
+
+
+def test_transition_recorder_flushes_and_validates(tmp_path):
+    import json
+
+    import numpy as np
+
+    from env.recorder import TRANSITION_FIELDS, TransitionRecorder
+    rec = TransitionRecorder(tmp_path, "run1", 3)
+    row = dict.fromkeys(TRANSITION_FIELDS)
+    row.update(obs=np.zeros(36, dtype=np.float32), mask=np.ones(12, dtype=np.int8), tick=0)
+    rec.append(row)
+    line = json.loads((tmp_path / "run1" / "episode_3.jsonl").read_text())   # visible before close: flushed
+    assert line["obs"] == [0.0] * 36 and line["mask"] == [1] * 12
+    with pytest.raises(ValueError):
+        rec.append({"tick": 1})
+    rec.close()
