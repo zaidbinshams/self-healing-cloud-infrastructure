@@ -1,0 +1,4 @@
+# Only addition to ruff's built-in defaults: skip the synthetic prototype folder.
+# _model_prototype/ is a teammate's isolated, SYNTHETIC toy-simulator prototype (see its README);
+# it is not project code and must not gate `ruff check .` (human decision 2026-10-09).
+extend-exclude = ["_model_prototype"]
