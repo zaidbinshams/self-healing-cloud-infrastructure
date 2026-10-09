@@ -715,7 +715,7 @@ Fields:
 - **Masks** are `np.int8`, shape `(12,)`.
 - **Purity.** Pure functions — normalization, imputation, reward, mask, runbook decision, SAC losses, PER math — live apart from I/O and have unit tests.
 - **Seeds.** One seed per run, fed to Python, NumPy, and Torch, and to the env RNG that samples fault plans. Cluster physics is not seedable; never claim otherwise.
-- **Startup.** On startup, every entry point loads and validates `contract.yaml` (schema and types) and refuses to run if `calibration.json` is missing or its `env_git_sha` is older than the latest commit touching `env/`. The exceptions are `scripts/calibrate.py` itself and `scripts/record_ticks.py`, which runs before calibration and records raw, unnormalized telemetry only (human-approved 2026-10-02). Both still load and validate `contract.yaml`.
+- **Startup.** On startup, every entry point loads and validates `contract.yaml` (schema and types) and refuses to run if `calibration.json` is missing or its `env_git_sha` is older than the latest commit touching the **calibration measurement path**: `env/clock.py`, `env/telemetry.py`, `config/contract.yaml`. Narrowed from "anything in `env/`" on 2026-10-09 (human-approved). Injector, env-loop and reward fixes do not change what calibration measures, and `env/contract.py` only parses the locked values in `config/contract.yaml`. The exceptions are `scripts/calibrate.py` itself and `scripts/record_ticks.py`, which runs before calibration and records raw, unnormalized telemetry only (human-approved 2026-10-02). Both still load and validate `contract.yaml`.
 
 ---
 

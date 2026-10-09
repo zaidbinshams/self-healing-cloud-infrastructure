@@ -3,7 +3,7 @@
 Every entry point calls `load_contract()` on startup. It checks the schema (exact key sets, value
 types) and the cross-field invariants, and returns frozen dataclasses. Entry points that use
 calibrated values also call `load_calibration()`, which refuses a missing file or one calibrated
-against an `env/` older than the latest commit touching `env/`. Exempt from the calibration
+against an older version of its measurement path (CALIBRATION_MEASUREMENT_PATH). Exempt from the calibration
 requirement: `scripts/calibrate.py`, and `scripts/record_ticks.py`, which records raw telemetry
 only (human-approved 2026-10-02, CLAUDE.md §7).
 """
@@ -29,6 +29,11 @@ CONTRACT_PATH = REPO_ROOT / "config" / "contract.yaml"
 CALIBRATION_PATH = REPO_ROOT / "config" / "calibration.json"
 GOLDEN_LIVE_PATH = REPO_ROOT / "config" / "golden_live.json"
 ENV_DIR = "env"
+# Files whose change invalidates calibration.json: what calibrate.py measures through — the tick clock,
+# telemetry + imputation, and the locked contract values. This module only parses/validates those
+# values, and injector / env-loop / reward fixes do not change the measurement (CLAUDE.md §7,
+# human-approved 2026-10-09).
+CALIBRATION_MEASUREMENT_PATH = ("env/clock.py", "env/telemetry.py", "config/contract.yaml")
 
 N_ACTIONS = 12            # CLAUDE.md §5.2 action catalog
 OBS_DIM = 36              # CLAUDE.md §5.3
@@ -332,12 +337,13 @@ def load_calibration(path: Path = CALIBRATION_PATH, check_fresh: bool = True) ->
         raise ContractError(f"cannot read {path}: {type(exc).__name__}: {exc}") from exc
     _require(cal.l_sla_ms > 0 and cal.rps_base > 0 and cal.u_base > 0, "calibration values must be positive")
     if check_fresh:
-        latest_env = _git("log", "-1", "--format=%H", "--", ENV_DIR)
+        latest_env = _git("log", "-1", "--format=%H", "--", *CALIBRATION_MEASUREMENT_PATH)
         if latest_env:
             is_ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", latest_env, cal.env_git_sha],
                                          cwd=REPO_ROOT, capture_output=True, check=False).returncode == 0
             _require(is_ancestor, f"calibration env_git_sha {cal.env_git_sha[:8]} is older than the latest "
-                                  f"env/ commit {latest_env[:8]}: re-run scripts/calibrate.py")
+                                  f"measurement-path commit {latest_env[:8]} ({', '.join(CALIBRATION_MEASUREMENT_PATH)}): "
+                                  f"re-run scripts/calibrate.py")
     return cal
 
 
