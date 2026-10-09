@@ -200,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def finalize(contract: Any, steady: list[dict[str, Any]], u_base: int, search: list[dict[str, Any]], stamp: str,
-             ticks_path: Path, git_sha: str, measured_at: str) -> int:
+             ticks_path: Path, git_sha: str, measured_at: str, summary_suffix: str = ".summary.json") -> int:
     """Steps 4: L_SLA, RPS_base, gate G6; write the summary, and calibration.json iff G6 passes."""
     out_dir = REPO_ROOT / "data" / "calibration"
     valid = [t for t in steady if not t["stale"]]
@@ -217,7 +217,7 @@ def finalize(contract: Any, steady: list[dict[str, Any]], u_base: int, search: l
         "ticks_file": str(ticks_path.relative_to(REPO_ROOT)), "git_sha": git_sha, "measured_at": measured_at,
         "g6_max_cv": G6_MAX_CV,
     }
-    (out_dir / f"{stamp}.summary.json").write_text(json.dumps(summary, indent=1))
+    (out_dir / f"{stamp}{summary_suffix}").write_text(json.dumps(summary, indent=1))
     print(json.dumps({k: summary[k] for k in ("u_base", "l_sla_ms", "rps_base", "valid_ticks", "stale_share",
                                                "sla_quantile", "latency_median_ms", "latency_q95_ms",
                                                "frontend_util_median", "g6")},
@@ -239,6 +239,7 @@ def finalize(contract: Any, steady: list[dict[str, Any]], u_base: int, search: l
 def finalize_from_recording(ticks_path: Path) -> int:
     """Recompute an earlier run's result from its recorded ticks + summary; nothing is re-measured."""
     contract = load_contract()
+    ticks_path = ticks_path.resolve()
     summary_path = ticks_path.with_name(ticks_path.name.replace(".jsonl", ".summary.json"))
     prior = json.loads(summary_path.read_text())
     steady = [json.loads(line) for line in ticks_path.read_text().splitlines() if line.strip()]
@@ -247,8 +248,9 @@ def finalize_from_recording(ticks_path: Path) -> int:
         return 2
     measured_at = prior.get("measured_at") or datetime.strptime(prior["stamp"], "%Y%m%dT%H%M%S").astimezone(
         timezone.utc).isoformat()
+    # Written beside the original summary, never over it: the original records the run as measured.
     return finalize(contract, steady, int(prior["u_base"]), prior["search"], prior["stamp"], ticks_path,
-                    prior["git_sha"], measured_at)
+                    prior["git_sha"], measured_at, summary_suffix=f".recomputed-g6max{G6_MAX_CV:.2f}.summary.json")
 
 
 if __name__ == "__main__":
