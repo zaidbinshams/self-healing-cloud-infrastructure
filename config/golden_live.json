@@ -1,7 +1,7 @@
 {
-  "captured_at": 1790948066.9592612,
-  "captured_at_iso": "2026-10-02T13:34:26.959261+00:00",
-  "contract_sha256": "aa6e2e55b9cf81320c3354a12e8d73f55c7951eb2fa75db3f36dc18f6fa186ac",
+  "captured_at": 1791523839.762488,
+  "captured_at_iso": "2026-10-09T05:30:39.762488+00:00",
+  "contract_sha256": "a2eef9c911fefed1d5c5ed7669f357a4ceeb864d49f73c3f0d4b4643550a0977",
   "deployments": {
     "adservice": {
       "replicas": 1,
@@ -110,6 +110,10 @@
                 {
                   "name": "REDIS_ADDR",
                   "value": "redis-cart:6379"
+                },
+                {
+                  "name": "DOTNET_ThreadPool_ForceMinWorkerThreads",
+                  "value": "0x20"
                 }
               ],
               "image": "us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/cartservice:v0.10.7",
@@ -181,7 +185,7 @@
           "terminationGracePeriodSeconds": 5
         }
       },
-      "template_hash": "73fb1d53af5b4ac6e96b9017df1c280c6e6c4b5afabd76e4c2c7ea38b91c237d"
+      "template_hash": "07d559b248a302ba32145f27dea05a969f6a3183257cb08b30749f6802fd6564"
     },
     "checkoutservice": {
       "replicas": 1,
@@ -1080,8 +1084,8 @@
       "template_hash": "b156feecc3120f026adb8b671a2cb0ba9cee1159d2f0e4047cccda764b0ee0a3"
     }
   },
-  "git_sha": "91237d02fabaf4e98993fd115284bf7237152cea",
-  "golden_yaml_sha256": "d55821f51d32c3fa5c7b77390c09eb1b641d34cabf0b2791e782f788747fa1d0",
+  "git_sha": "106f8427f96870b1289d458a0279403da0f62a50",
+  "golden_yaml_sha256": "a90f997e50f0ab73529354437e501e9d75b935576b1a5731680fb1cb3c3055b1",
   "managed": [
     "frontend",
     "cartservice",
