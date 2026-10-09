@@ -164,6 +164,11 @@ class RunbookCfg:
 
 
 @dataclass(frozen=True)
+class CalibrationCfg:
+    frontend_util_band: tuple[float, float]    # U_base target: frontend CPU / limit (§5.1)
+
+
+@dataclass(frozen=True)
 class Contract:
     cluster: ClusterCfg
     clock: ClockCfg
@@ -177,6 +182,7 @@ class Contract:
     rl: RlCfg
     per: PerCfg
     runbook: RunbookCfg
+    calibration: CalibrationCfg
     sha256: str = dataclasses.field(default="", compare=False)
 
 
@@ -274,6 +280,8 @@ def _validate(c: Contract) -> None:
     _require(c.telemetry.locf_max_ticks >= 0, "telemetry.locf_max_ticks must be >= 0")
     _require(c.telemetry.stale_truncate_ticks >= 1, "telemetry.stale_truncate_ticks must be >= 1")
     _require(0 <= c.sla.e_sla < c.sla.e_max <= 1, "sla: need 0 <= e_sla < e_max <= 1")
+    lo, hi = c.calibration.frontend_util_band
+    _require(0.0 < lo < hi < 1.0, "calibration.frontend_util_band must satisfy 0 < lo < hi < 1")
     _require(set(c.golden_overrides) <= set(managed) | set(UNMANAGED_OVERRIDABLE),
              f"golden_overrides may only name managed deployments or {UNMANAGED_OVERRIDABLE}")
     for dep, spec in c.golden_overrides.items():

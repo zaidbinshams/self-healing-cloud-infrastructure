@@ -338,6 +338,8 @@ runbook:
   restart_cooldown_ticks: 6
   warmstart_epsilon: 0.25
   warmstart_episodes: 120
+calibration:
+  frontend_util_band: [0.50, 0.60]  # U_base target (added 2026-10-09, CONTRACT-CHANGE)
 ```
 
 `config/calibration.json` (generated) contains: `l_sla_ms`, `rps_base`, `u_base`, `calibrated_at`, `env_git_sha`.

@@ -79,3 +79,5 @@ runbook:
   restart_cooldown_ticks: 6
   warmstart_epsilon: 0.25
   warmstart_episodes: 120
+calibration:                        # CONTRACT-CHANGE 2026-10-09: U_base redefinition (human-approved 2026-10-02)
+  frontend_util_band: [0.50, 0.60]  # U_base = Locust users putting frontend CPU at 50-60 % of its limit, no fault
