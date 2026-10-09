@@ -1,0 +1,1682 @@
+[
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 0,
+  "fault": "F1",
+  "target": "productcatalogservice",
+  "severity": "300ms",
+  "L": 3,
+  "return": -0.6012952707033193,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 6,
+  "sum_v": 0.3062952707033192,
+  "ticks": 9,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTART cart",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 1,
+  "fault": "F3",
+  "target": "cartservice",
+  "severity": null,
+  "L": 4,
+  "return": -2.16,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 4,
+  "sum_v": 2.0,
+  "ticks": 9,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 2,
+  "fault": "NULL",
+  "target": null,
+  "severity": null,
+  "L": 5,
+  "return": -0.5475,
+  "recovered": false,
+  "mttr_s": null,
+  "n_actions": 10,
+  "sum_v": 0.0,
+  "ticks": 12,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 11,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 3,
+  "fault": "F4",
+  "target": "frontend",
+  "severity": 2.5,
+  "L": 2,
+  "return": -0.2325,
+  "recovered": true,
+  "mttr_s": 20,
+  "n_actions": 5,
+  "sum_v": 0.0,
+  "ticks": 6,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_DOWN fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 3,
+    "action": "RESTART pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 4,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 4,
+  "fault": "F4",
+  "target": "frontend",
+  "severity": 3.0,
+  "L": 3,
+  "return": -0.395,
+  "recovered": true,
+  "mttr_s": 20,
+  "n_actions": 7,
+  "sum_v": 0.0,
+  "ticks": 7,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_UP cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 5,
+  "fault": "F4",
+  "target": "frontend",
+  "severity": 3.0,
+  "L": 3,
+  "return": -3.1507429534692846,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 5,
+  "sum_v": 2.693324058701654,
+  "ticks": 9,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP cart",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP fe",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 6,
+  "fault": "F2",
+  "target": "cartservice",
+  "severity": 2,
+  "L": 5,
+  "return": -1.1468355813510236,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 10,
+  "sum_v": 0.5393355813510236,
+  "ticks": 11,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_UP cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTART cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTART cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE cur",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 7,
+  "fault": "F3",
+  "target": "cartservice",
+  "severity": null,
+  "L": 3,
+  "return": -3.3474999999999997,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 5,
+  "sum_v": 3.0,
+  "ticks": 9,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_UP cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTORE cur",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 8,
+  "fault": "F3",
+  "target": "currencyservice",
+  "severity": null,
+  "L": 2,
+  "return": -3.2,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 5,
+  "sum_v": 3.0,
+  "ticks": 8,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTART pc",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 9,
+  "fault": "F4",
+  "target": "frontend",
+  "severity": 2.5,
+  "L": 2,
+  "return": -1.0097454816394902,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 6,
+  "sum_v": 0.72974548163949,
+  "ticks": 7,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTORE pc",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 4,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "SCALE_UP cart",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 10,
+  "fault": "NULL",
+  "target": null,
+  "severity": null,
+  "L": 3,
+  "return": -0.36750000000000005,
+  "recovered": false,
+  "mttr_s": null,
+  "n_actions": 9,
+  "sum_v": 0.0,
+  "ticks": 10,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_DOWN fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "SCALE_DOWN fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "SCALE_DOWN fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "SCALE_DOWN fe",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 11,
+  "fault": "NULL",
+  "target": null,
+  "severity": null,
+  "L": 4,
+  "return": -0.2575,
+  "recovered": false,
+  "mttr_s": null,
+  "n_actions": 6,
+  "sum_v": 0.0,
+  "ticks": 11,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTART pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 12,
+  "fault": "NULL",
+  "target": null,
+  "severity": null,
+  "L": 3,
+  "return": -0.2625,
+  "recovered": false,
+  "mttr_s": null,
+  "n_actions": 6,
+  "sum_v": 0.0,
+  "ticks": 10,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTORE pc",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_UP cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 13,
+  "fault": "F2",
+  "target": "currencyservice",
+  "severity": 1,
+  "L": 3,
+  "return": -0.7216711974080465,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 6,
+  "sum_v": 0.41667119740804653,
+  "ticks": 8,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_DOWN fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 4,
+    "action": "RESTART cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cur",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 14,
+  "fault": "F1",
+  "target": "productcatalogservice",
+  "severity": "600ms",
+  "L": 4,
+  "return": -3.72234713843793,
+  "recovered": true,
+  "mttr_s": 160,
+  "n_actions": 9,
+  "sum_v": 3.127347138437929,
+  "ticks": 15,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP cart",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTART fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 12,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 14,
+    "action": "RESTORE pc",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 15,
+  "fault": "F2",
+  "target": "cartservice",
+  "severity": 2,
+  "L": 3,
+  "return": -1.46000985532264,
+  "recovered": true,
+  "mttr_s": 80,
+  "n_actions": 6,
+  "sum_v": 1.2275098553226398,
+  "ticks": 10,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTART cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTART pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "SCALE_UP fe",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 16,
+  "fault": "F1",
+  "target": "productcatalogservice",
+  "severity": "300ms",
+  "L": 5,
+  "return": -1.0839894703582724,
+  "recovered": true,
+  "mttr_s": 100,
+  "n_actions": 9,
+  "sum_v": 0.5564894703582727,
+  "ticks": 13,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_DOWN fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "SCALE_DOWN fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 12,
+    "action": "RESTART cart",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 17,
+  "fault": "F3",
+  "target": "currencyservice",
+  "severity": null,
+  "L": 2,
+  "return": -2.145,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 4,
+  "sum_v": 2.0,
+  "ticks": 7,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_DOWN fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 18,
+  "fault": "F1",
+  "target": "productcatalogservice",
+  "severity": "1s",
+  "L": 5,
+  "return": -1.5354590691760086,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 6,
+  "sum_v": 1.1854590691760087,
+  "ticks": 10,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP cart",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 19,
+  "fault": "F3",
+  "target": "currencyservice",
+  "severity": null,
+  "L": 5,
+  "return": -2.4274999999999998,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 9,
+  "sum_v": 2.0,
+  "ticks": 10,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_DOWN fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "SCALE_DOWN fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "RESTORE cur",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 20,
+  "fault": "F3",
+  "target": "cartservice",
+  "severity": null,
+  "L": 5,
+  "return": -3.5749999999999997,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 9,
+  "sum_v": 3.0,
+  "ticks": 11,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_UP cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE cur",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 21,
+  "fault": "F4",
+  "target": "frontend",
+  "severity": 2.5,
+  "L": 5,
+  "return": -0.37000000000000005,
+  "recovered": true,
+  "mttr_s": 20,
+  "n_actions": 7,
+  "sum_v": 0.0,
+  "ticks": 9,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTART pc",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE pc",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "SCALE_UP cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTART fe",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 22,
+  "fault": "F2",
+  "target": "cartservice",
+  "severity": 1,
+  "L": 4,
+  "return": -0.5688061717890256,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 5,
+  "sum_v": 0.3023515768251841,
+  "ticks": 9,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTART cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 23,
+  "fault": "NULL",
+  "target": null,
+  "severity": null,
+  "L": 4,
+  "return": -0.4775,
+  "recovered": false,
+  "mttr_s": null,
+  "n_actions": 9,
+  "sum_v": 0.0,
+  "ticks": 11,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP cart",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 24,
+  "fault": "F4",
+  "target": "frontend",
+  "severity": 3.0,
+  "L": 2,
+  "return": -0.2875,
+  "recovered": true,
+  "mttr_s": 20,
+  "n_actions": 4,
+  "sum_v": 0.0,
+  "ticks": 6,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_UP cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 25,
+  "fault": "F1",
+  "target": "productcatalogservice",
+  "severity": "1s",
+  "L": 3,
+  "return": -1.4701637697184788,
+  "recovered": true,
+  "mttr_s": 40,
+  "n_actions": 6,
+  "sum_v": 1.1701637697184792,
+  "ticks": 8,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "RESTART pc",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 26,
+  "fault": "NULL",
+  "target": null,
+  "severity": null,
+  "L": 3,
+  "return": -0.425,
+  "recovered": false,
+  "mttr_s": null,
+  "n_actions": 8,
+  "sum_v": 0.0,
+  "ticks": 10,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP cart",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTORE cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 27,
+  "fault": "F2",
+  "target": "currencyservice",
+  "severity": 2,
+  "L": 5,
+  "return": -1.0399271718969292,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 7,
+  "sum_v": 0.7674271718969292,
+  "ticks": 11,
+  "valid": true,
+  "stale_ticks": 0,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "RESTART pc",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "RESTORE pc",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTART cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "RESTART pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "SCALE_UP fe",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 28,
+  "fault": "F1",
+  "target": "productcatalogservice",
+  "severity": "600ms",
+  "L": 5,
+  "return": -1.3660935763177442,
+  "recovered": true,
+  "mttr_s": 60,
+  "n_actions": 6,
+  "sum_v": 1.1085935763177441,
+  "ticks": 11,
+  "valid": true,
+  "stale_ticks": 1,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "RESTART fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 2,
+    "action": "RESTART cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE pc",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "SCALE_UP fe",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE pc",
+    "phase": "post"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ },
+ {
+  "tag": "sac_uniform_s0",
+  "episode": 29,
+  "fault": "F2",
+  "target": "currencyservice",
+  "severity": 2,
+  "L": 4,
+  "return": -6.708587304343476,
+  "recovered": false,
+  "mttr_s": null,
+  "n_actions": 22,
+  "sum_v": 5.260490479373564,
+  "ticks": 23,
+  "valid": true,
+  "stale_ticks": 1,
+  "actions": [
+   {
+    "tick": 0,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 1,
+    "action": "SCALE_UP fe",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 3,
+    "action": "SCALE_UP cur",
+    "phase": "lead_in"
+   },
+   {
+    "tick": 4,
+    "action": "RESTORE cur",
+    "phase": "fault"
+   },
+   {
+    "tick": 5,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 6,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 7,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 8,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 9,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 10,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 11,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 12,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 13,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 14,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 15,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 16,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 17,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 18,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 19,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 20,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 21,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   },
+   {
+    "tick": 22,
+    "action": "RESTORE cart",
+    "phase": "fault"
+   }
+  ],
+  "schedule_sha256": "ac886196cd35ba3be54b780111331ed246817d88be066c8d0a322cff2f66bd97",
+  "data_origin": "SYNTHETIC_TOY_SIMULATOR"
+ }
+]
