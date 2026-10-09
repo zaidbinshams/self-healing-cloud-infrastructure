@@ -95,10 +95,10 @@ def g6(cal_summary: dict[str, Any] | None, episodes: list[dict[str, Any]],
     cv = (cal_summary or {}).get("g6", {}).get("cv", float("nan"))
     null_eps = {e["episode"] for e in episodes if e["fault"] == "NULL"}
     ticks = [t["raw"]["features"] for ep in transitions for t in ep if t["episode"] in null_eps]
-    breach = (sum(1 for f in ticks if f["p99_ms"] > l_sla_ms or f["fail_ratio"] > e_sla) / len(ticks)
+    breach = (sum(1 for f in ticks if f["latency_ms"] > l_sla_ms or f["fail_ratio"] > e_sla) / len(ticks)
               if ticks else float("nan"))
     return Gate("G6 Signal", cv < G6_MAX_CV and breach < G6_MAX_NULL_BREACH,
-                f"steady tick-P99 CV {cv:.3f} (< 0.25, calibration); NULL-tick SLA breaches {breach:.2%} "
+                f"steady tick SLA-latency CV {cv:.3f} (< 0.25, calibration); NULL-tick SLA breaches {breach:.2%} "
                 f"of {len(ticks)} (< 2%)")
 
 

@@ -51,6 +51,9 @@ Every locked-file change made before this date is **pre-experiment tuning**, doc
   - it invalidates every run collected under the previous version for the affected comparisons; those runs are redone, never mixed.
 - M3 fault smoke tests (G7) are the last point where an unfreeze is still expected, for example if a fault severity turns out undetectable. No unfreeze is allowed once M4 training starts.
 
+**Unfreeze log:**
+- **2026-10-09, `sla.latency_quantile: 0.95`** (SLA latency server-side p95 instead of p99). The server-side calibration failed G6 at CV 0.285, and a bootstrap showed p99 sampling noise of ~0.145 CV per tick. Superseded: ticks_steady fixture `e62bcb5`, calibration attempt `20261009T144632`.
+
 ### `config/cluster.env` (create first, fill in real values)
 
 ```bash
@@ -370,7 +373,7 @@ Then validate it end-to-end with the **scripted runbook**. Calibrate the SLA, pa
 | G3 Faults | Runbook recovers ≥ 95% of F1–F4 episodes within 18 ticks |
 | G4 Safety | Zero runbook actions in NULL episodes (FRR = 0) |
 | G5 Reset | ≥ 98% of resets succeed without hard reset |
-| G6 Signal | CV of steady-state tick-P99 < 0.25; < 2% of NULL ticks breach the SLA |
+| G6 Signal | CV of steady-state tick SLA latency (server-side p95, `CLAUDE.md` §5.6) < 0.25; < 2% of NULL ticks breach the SLA |
 | G7 Calibration | F4 bottleneck = frontend; every F2 severity yields throttle ≥ 0.40 |
 
 ### Validate

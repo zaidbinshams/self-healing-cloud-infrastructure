@@ -75,7 +75,7 @@ def test_clean_tick_uses_values_verbatim(steady_raw, contract):
     clean = [(r, f) for r, f in zip(steady_raw, features, strict=True) if all_sources_ok(r)]
     assert clean, "fixture has no tick where all sources answered"
     for raw, f in clean:
-        assert f.p99_ms == raw.server.p99_ms                  # SLA latency is server-side (G6 option 1)
+        assert f.latency_ms == raw.server.sla_ms                # SLA latency: server-side quantile (G6 option 1)
         assert f.client_p99_ms == raw.locust.p99_ms and f.rps == raw.locust.rps
         assert f.fail_ratio == raw.locust.failures / raw.locust.n
         for d in contract.cluster.managed:
@@ -171,7 +171,7 @@ def test_rule6_locust_down_carries_forward(steady_raw, contract, locust):
     (f0,), state = run(steady_raw[:1], contract)
     f1, _ = impute(dataclasses.replace(steady_raw[1], locust=locust), state, contract)
     assert (f1.client_p99_ms, f1.fail_ratio, f1.rps) == (f0.client_p99_ms, f0.fail_ratio, f0.rps)
-    assert f1.p99_ms == steady_raw[1].server.p99_ms           # server-side latency still measured
+    assert f1.latency_ms == steady_raw[1].server.sla_ms        # server-side latency still measured
     assert f1.stale
 
 
@@ -180,10 +180,10 @@ def test_server_read_truncated_by_log_rotation_is_missing(steady_raw, contract):
     (f0,), state = run(steady_raw[:1], contract)
     raw = steady_raw[1]
     short = int(contract.telemetry.server_log_min_completeness * raw.locust.n) - 1
-    truncated = dataclasses.replace(raw, server=dataclasses.replace(raw.server, n=short, p99_ms=1.0))
+    truncated = dataclasses.replace(raw, server=dataclasses.replace(raw.server, n=short, sla_ms=1.0))
     f1, _ = impute(truncated, state, contract)
-    assert f1.p99_ms == f0.p99_ms and f1.p99_ms != 1.0
-    assert f1.stale and "server:incomplete" in f1.failed_sources and "server/p99_ms" in f1.imputed
+    assert f1.latency_ms == f0.latency_ms and f1.latency_ms != 1.0
+    assert f1.stale and "server:incomplete" in f1.failed_sources and "server/latency_ms" in f1.imputed
 
 
 def test_server_source_failure_is_stale(steady_raw, contract):
@@ -191,7 +191,7 @@ def test_server_source_failure_is_stale(steady_raw, contract):
     (f0,), state = run(steady_raw[:1], contract)
     f1, _ = impute(dataclasses.replace(steady_raw[1], server=ServerLatencyResult(False, error_type="ProtocolError")),
                    state, contract)
-    assert f1.p99_ms == f0.p99_ms and f1.stale and "server" in f1.failed_sources
+    assert f1.latency_ms == f0.latency_ms and f1.stale and "server" in f1.failed_sources
 
 
 def test_server_log_parser_window_and_health_filter():

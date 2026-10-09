@@ -15,16 +15,16 @@ import pytest
 from agents.runbook import Runbook, read_obs
 from env.contract import Calibration
 from env.k8s_actions import compute_mask
-from env.telemetry import norm_p99
+from env.telemetry import norm_latency
 
 CAL = Calibration(l_sla_ms=500.0, rps_base=50.0, u_base=40, calibrated_at="test", env_git_sha="test")
 BASE = {"frontend": 1, "cartservice": 1, "currencyservice": 1, "productcatalogservice": 1}
 
 
-def make_obs(contract, *, p99_ms=100.0, fail=0.0, rps=50.0, throttle=None, spec=None, since=None,
+def make_obs(contract, *, latency_ms=100.0, fail=0.0, rps=50.0, throttle=None, spec=None, since=None,
              in_flight=False):
     o = np.zeros(36, dtype=np.float32)
-    o[0], o[1], o[2] = norm_p99(p99_ms, CAL.l_sla_ms), fail, min(1.0, rps / (3 * CAL.rps_base))
+    o[0], o[1], o[2] = norm_latency(latency_ms, CAL.l_sla_ms), fail, min(1.0, rps / (3 * CAL.rps_base))
     spec = {**BASE, **(spec or {})}
     for i, d in enumerate(contract.cluster.managed):
         b = 5 + 7 * i
@@ -44,12 +44,12 @@ def run(rb, seq):
 
 
 def test_read_obs_roundtrip(contract):
-    o, _ = make_obs(contract, p99_ms=400, rps=75, throttle={"cartservice": 0.7}, spec={"frontend": 2},
+    o, _ = make_obs(contract, latency_ms=400, rps=75, throttle={"cartservice": 0.7}, spec={"frontend": 2},
                     since={"productcatalogservice": 3})
     v = read_obs(o, contract, CAL)
     assert v.healthy and v.rps == pytest.approx(75, rel=1e-5) and v.spec["frontend"] == 2
     assert v.throttle["cartservice"] == pytest.approx(0.7) and v.ticks_since_gen_change["productcatalogservice"] == 3
-    assert not read_obs(make_obs(contract, p99_ms=600)[0], contract, CAL).healthy
+    assert not read_obs(make_obs(contract, latency_ms=600)[0], contract, CAL).healthy
 
 
 def test_r0_in_flight_noop(contract):
@@ -59,28 +59,28 @@ def test_r0_in_flight_noop(contract):
 
 def test_r1_scaled_to_zero_restores(contract):                       # F3 pattern
     rb = Runbook(contract, CAL)
-    assert rb.act(*make_obs(contract, p99_ms=2000, spec={"cartservice": 0}))[:2] == (10, "R1")
+    assert rb.act(*make_obs(contract, latency_ms=2000, spec={"cartservice": 0}))[:2] == (10, "R1")
 
 
 def test_r2_restores_unexplained_recent_change(contract):            # F1 pattern
     rb = Runbook(contract, CAL)
-    bad = {"p99_ms": 1500}
+    bad = {"latency_ms": 1500}
     run(rb, [make_obs(contract, **bad, since={"productcatalogservice": 1})])
     assert rb.act(*make_obs(contract, **bad, since={"productcatalogservice": 2}))[:2] == (9, "R2")
 
 
 def test_r2_ignores_changes_the_runbook_caused(contract):
     rb = Runbook(contract, CAL)
-    rb.act(*make_obs(contract, p99_ms=1500, throttle={"cartservice": 0.8}))        # tick 0
+    rb.act(*make_obs(contract, latency_ms=1500, throttle={"cartservice": 0.8}))        # tick 0
     rb.my_actions.append((0, 2))                                                   # pretend: RESTART cart at tick 0
     rb.tick = 2
-    _aid, rule = rb.decide(*make_obs(contract, p99_ms=1500, since={"cartservice": 2}))
+    _aid, rule = rb.decide(*make_obs(contract, latency_ms=1500, since={"cartservice": 2}))
     assert rule != "R2"
 
 
 def test_r3_surge_scales_frontend(contract):                         # F4 pattern
     rb = Runbook(contract, CAL)
-    surge = {"p99_ms": 1500, "rps": 120, "throttle": {"frontend": 0.6}}
+    surge = {"latency_ms": 1500, "rps": 120, "throttle": {"frontend": 0.6}}
     run(rb, [make_obs(contract, **surge)])
     assert rb.act(*make_obs(contract, **surge))[:2] == (5, "R3")
     rb2 = Runbook(contract, CAL)
@@ -90,7 +90,7 @@ def test_r3_surge_scales_frontend(contract):                         # F4 patter
 
 def test_r4_hot_pod_restarts_with_cooldown(contract):                # F2 pattern
     rb = Runbook(contract, CAL)
-    hot = {"p99_ms": 1500, "rps": 50, "throttle": {"cartservice": 0.8, "currencyservice": 0.5}}
+    hot = {"latency_ms": 1500, "rps": 50, "throttle": {"cartservice": 0.8, "currencyservice": 0.5}}
     run(rb, [make_obs(contract, **hot)])
     assert rb.act(*make_obs(contract, **hot))[:2] == (2, "R4")                     # argmax throttle
     assert rb.act(*make_obs(contract, **hot))[0] != 2                              # cooldown

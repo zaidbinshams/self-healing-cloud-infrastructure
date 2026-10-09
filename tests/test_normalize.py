@@ -22,7 +22,7 @@ from env.telemetry import (
     TelemetryError,
     build_obs,
     impute,
-    norm_p99,
+    norm_latency,
 )
 
 L_SLA_MS_TEST = 500.0
@@ -60,7 +60,7 @@ def test_every_recorded_tick_gives_a_valid_observation(steady_features, contract
 def test_global_features_match_formulas(steady_features, contract, limits):
     f0, f1 = steady_features[0], steady_features[1]
     obs0, obs1 = obs_for(f0, None, contract, limits), obs_for(f1, f0, contract, limits)
-    p99 = min(1.0, math.log2(1 + f1.p99_ms / L_SLA_MS_TEST) / math.log2(21))
+    p99 = min(1.0, math.log2(1 + f1.latency_ms / L_SLA_MS_TEST) / math.log2(21))
     assert obs1[0] == pytest.approx(p99, abs=1e-6)
     assert obs1[1] == pytest.approx(f1.fail_ratio, abs=1e-6)
     assert obs1[2] == pytest.approx(min(1.0, f1.rps / (3 * RPS_BASE_TEST)), abs=1e-6)
@@ -69,10 +69,10 @@ def test_global_features_match_formulas(steady_features, contract, limits):
     assert obs1[4] == pytest.approx(obs1[1] - obs0[1], abs=1e-6)
 
 
-@pytest.mark.parametrize(("p99_ms", "want"), [(0.0, 0.0), (L_SLA_MS_TEST, math.log2(2) / math.log2(21)),
+@pytest.mark.parametrize(("latency_ms", "want"), [(0.0, 0.0), (L_SLA_MS_TEST, math.log2(2) / math.log2(21)),
                                               (20 * L_SLA_MS_TEST, 1.0), (1e9, 1.0)])
-def test_p99_scale(p99_ms, want):
-    assert norm_p99(p99_ms, L_SLA_MS_TEST) == pytest.approx(want)
+def test_latency_scale(latency_ms, want):
+    assert norm_latency(latency_ms, L_SLA_MS_TEST) == pytest.approx(want)
 
 
 def test_service_features_match_formulas(steady_features, contract, limits):
@@ -125,6 +125,6 @@ def test_env_features(steady_features, contract, limits, ticks_since_action, wan
 
 def test_non_finite_feature_raises(steady_features, contract, limits):
     """Rule 8: a NaN must never reach the observation."""
-    bad = dataclasses.replace(steady_features[-1], p99_ms=float("nan"))
+    bad = dataclasses.replace(steady_features[-1], latency_ms=float("nan"))
     with pytest.raises((TelemetryError, ValueError)):
         obs_for(bad, None, contract, limits)

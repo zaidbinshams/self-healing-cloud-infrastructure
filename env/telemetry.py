@@ -49,7 +49,7 @@ SERVER_HEALTH_PATH = "/_healthz"
 SERVER_LOG_READERS = 4                 # concurrent per-pod log reads (frontend max replicas = 3)
 
 # Formula constants of the observation contract (CLAUDE.md §5.3).
-P99_LOG_BASE_RATIO = 21.0          # p99 = log2(1 + P99/L_SLA) / log2(21)
+LATENCY_LOG_BASE_RATIO = 21.0      # obs[0] = log2(1 + latency/L_SLA) / log2(21)
 RPS_SCALE = 3.0                    # rps = RPS / (3 * RPS_base)
 RESTARTS_CAP = 3                   # restarts = min(delta, 3) / 3
 ROLLOUT_RECENCY_TICKS = 5.0        # rollout_recency = exp(-ticks / 5)
@@ -151,6 +151,8 @@ class ServerLatencyResult:
     n: int = 0
     p50_ms: float = 0.0
     p99_ms: float = 0.0
+    sla_ms: float = 0.0               # nearest-rank quantile at contract sla.latency_quantile
+    quantile: float = 0.0
     pods: int = 0
     bytes: int = 0
     error_type: str = ""
@@ -319,9 +321,9 @@ def _nearest_rank(sorted_xs: list[float], q: float) -> float:
 
 
 def fetch_server_latency(core: client.CoreV1Api, ns: str, t_from_wall: float, t_to_wall: float, since_s: int,
-                         timeout_s: tuple[float, float],
-                         readers: concurrent.futures.ThreadPoolExecutor) -> ServerLatencyResult:
-    """Read every frontend pod's log tail concurrently and compute server p50/p99 for the window."""
+                         timeout_s: tuple[float, float], readers: concurrent.futures.ThreadPoolExecutor,
+                         quantile: float) -> ServerLatencyResult:
+    """Read every frontend pod's log tail concurrently; server p50/p99 and the SLA quantile for the window."""
     t0 = time.monotonic()
     try:
         pods = [p.metadata.name for p in core.list_namespaced_pod(
@@ -333,7 +335,8 @@ def fetch_server_latency(core: client.CoreV1Api, ns: str, t_from_wall: float, t_
         bodies = list(readers.map(read, pods))
         lat = sorted(x for b in bodies for x in server_window_latencies(b.decode("utf-8", errors="replace"),
                                                                         t_from_wall, t_to_wall))
-        result = (ServerLatencyResult(True, len(lat), _nearest_rank(lat, 0.50), _nearest_rank(lat, 0.99), len(pods),
+        result = (ServerLatencyResult(True, len(lat), _nearest_rank(lat, 0.50), _nearest_rank(lat, 0.99),
+                                      _nearest_rank(lat, quantile), quantile, len(pods),
                                       sum(len(b) for b in bodies)) if lat else
                   ServerLatencyResult(False, 0, pods=len(pods), bytes=sum(len(b) for b in bodies),
                                       error_type="no_requests", error="no completed requests in the window"))
@@ -387,7 +390,8 @@ class Collector:
             "pods": lambda: fetch_pods(self.core, ns, managed, tel.k8s_timeout_s),
             "server": lambda: fetch_server_latency(self.core, ns, t_from_wall, t_to_wall,
                                                    math.ceil(self.c.clock.tick_s) + tel.server_log_margin_s,
-                                                   tel.k8s_timeout_s, self._log_readers),
+                                                   tel.k8s_timeout_s, self._log_readers,
+                                                   self.c.sla.latency_quantile),
         }
         t0 = time.monotonic()
         futures = {name: self._pool.submit(fn) for name, fn in jobs.items()}
@@ -448,9 +452,10 @@ class ServiceFeatures:
 class TickFeatures:
     """Finite, denormalized features for one tick after §5.5 imputation.
 
-    p99_ms is SERVER-side (frontend request logs) and drives health, reward and obs[0];
-    client_p99_ms (Locust, includes the B<->A link) is logged for reporting only."""
-    p99_ms: float
+    latency_ms is the SLA latency: SERVER-side (frontend request logs) quantile `sla.latency_quantile`
+    of the tick; it drives health, reward and obs[0]. client_p99_ms (Locust, includes the B<->A link)
+    is logged for reporting only."""
+    latency_ms: float
     fail_ratio: float
     rps: float
     services: dict[str, ServiceFeatures]
@@ -499,12 +504,12 @@ def impute(raw: RawTick, state: ImputeState, contract: Contract) -> tuple[TickFe
     loc = raw.locust
     loc_ok = loc.ok and loc.n > 0
     client_p99_ms = imp.take("locust/p99_ms", loc.p99_ms if loc_ok else None)
-    # Server-side p99 (G6 option 1): valid only if the log read was complete relative to Locust's count;
-    # a read truncated by container-log rotation is missing data, never a measurement.
+    # Server-side SLA latency (G6 option 1, p95 since 2026-10-09): valid only if the log read was complete
+    # relative to Locust's count; a read truncated by log rotation is missing data, never a measurement.
     srv = raw.server
     complete = srv.ok and srv.n > 0 and (not loc_ok
                                          or srv.n >= contract.telemetry.server_log_min_completeness * loc.n)
-    p99_ms = imp.take("server/p99_ms", srv.p99_ms if complete else None)
+    latency_ms = imp.take("server/latency_ms", srv.sla_ms if complete else None)
     if srv.ok and not complete:
         failed = (*failed, "server:incomplete")
     fail_ratio = imp.take("locust/fail_ratio", loc.failures / loc.n if loc_ok else None)
@@ -556,7 +561,7 @@ def impute(raw: RawTick, state: ImputeState, contract: Contract) -> tuple[TickFe
         services[d] = ServiceFeatures(values["cpu"], values["thr"], values["mem"], spec, status_replicas,
                                       available, restarts_delta, since.get(d))
 
-    features = TickFeatures(p99_ms, fail_ratio, rps, services,
+    features = TickFeatures(latency_ms, fail_ratio, rps, services,
                             stale=bool(imp.imputed or failed), imputed=tuple(imp.imputed), failed_sources=failed,
                             client_p99_ms=client_p99_ms)
     _assert_finite(features)
@@ -564,7 +569,7 @@ def impute(raw: RawTick, state: ImputeState, contract: Contract) -> tuple[TickFe
 
 
 def _assert_finite(f: TickFeatures) -> None:
-    nums = [f.p99_ms, f.fail_ratio, f.rps, f.client_p99_ms]
+    nums = [f.latency_ms, f.fail_ratio, f.rps, f.client_p99_ms]
     for s in f.services.values():
         nums += [s.cpu_cores, s.throttle, s.mem_bytes, s.spec_replicas, s.status_replicas,
                  s.available_replicas, s.restarts_delta]
@@ -582,8 +587,8 @@ def _clip01(x: float) -> float:
     return min(1.0, max(0.0, x))
 
 
-def norm_p99(p99_ms: float, l_sla_ms: float) -> float:
-    return _clip01(math.log2(1.0 + p99_ms / l_sla_ms) / math.log2(P99_LOG_BASE_RATIO))
+def norm_latency(latency_ms: float, l_sla_ms: float) -> float:
+    return _clip01(math.log2(1.0 + latency_ms / l_sla_ms) / math.log2(LATENCY_LOG_BASE_RATIO))
 
 
 def build_obs(f: TickFeatures, prev: TickFeatures | None, *, contract: Contract, limits: Mapping[str, Limits],
@@ -596,12 +601,12 @@ def build_obs(f: TickFeatures, prev: TickFeatures | None, *, contract: Contract,
     # Check inputs first: min/max clipping maps NaN to a bound, which would hide it (§5.5 rule 8).
     _assert_finite(f)
     obs = np.zeros(OBS_DIM, dtype=np.float32)
-    p99 = norm_p99(f.p99_ms, l_sla_ms)
+    lat = norm_latency(f.latency_ms, l_sla_ms)
     fail = _clip01(f.fail_ratio)
-    obs[0], obs[1] = p99, fail
+    obs[0], obs[1] = lat, fail
     obs[2] = _clip01(f.rps / (RPS_SCALE * rps_base))
     if prev is not None:
-        obs[3] = p99 - norm_p99(prev.p99_ms, l_sla_ms)
+        obs[3] = lat - norm_latency(prev.latency_ms, l_sla_ms)
         obs[4] = fail - _clip01(prev.fail_ratio)
     for i, d in enumerate(contract.cluster.managed):
         s, lim = f.services[d], limits[d]

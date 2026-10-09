@@ -7,7 +7,7 @@ from scripts.gates import g1, g2, g3, g4, g5, g6, g7
 
 def tick(ep, k, t, *, stale=False, a=0, lat=1.0, p99=100.0, fail=0.0):
     return {"episode": ep, "tick": k, "t_wall": t, "stale": stale, "a_exec": a, "decision_latency_s": lat,
-            "raw": {"features": {"p99_ms": p99, "fail_ratio": fail}}}
+            "raw": {"features": {"latency_ms": p99, "fail_ratio": fail}}}
 
 
 def test_g1_jitter_and_latency():

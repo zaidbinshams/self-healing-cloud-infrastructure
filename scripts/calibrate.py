@@ -6,8 +6,8 @@
    relative to its limit (cpu_util[frontend], §5.3) over probe ticks, and adjust the user count
    proportionally until it lies in contract `calibration.frontend_util_band`.
 3. Steady window at U_base for --minutes: record every tick (data/calibration/<stamp>.jsonl).
-4. From non-stale steady ticks:  L_SLA = ceil_10ms(l_sla_factor · q95(tick-P99)),
-   RPS_base = median RPS.  Gate G6 (PLAN.md M3): CV(tick-P99) < 0.25 and < 2 % of ticks breach
+4. From non-stale steady ticks:  L_SLA = ceil_10ms(l_sla_factor · q95(tick SLA latency)),
+   RPS_base = median RPS.  Gate G6 (PLAN.md M3): CV(tick SLA latency) < 0.25 and < 2 % of ticks breach
    the SLA. calibration.json is written ONLY if G6 passes; otherwise exit 1 with diagnostics.
 
 Locust user changes are local to Machine B (POST /swarm); nothing on the cluster is mutated.
@@ -60,9 +60,9 @@ def quantile_nearest_rank(xs: list[float], q: float) -> float:
     return s[max(0, math.ceil(q * len(s)) - 1)]
 
 
-def l_sla_from(p99s: list[float], factor: float) -> float:
-    """L_SLA = ceil_10ms(factor * q95(steady tick-P99)) (§5.1). Pure."""
-    raw = factor * quantile_nearest_rank(p99s, 0.95)
+def l_sla_from(lats: list[float], factor: float) -> float:
+    """L_SLA = ceil_10ms(factor * q95(steady tick SLA latency)) (§5.1). Pure."""
+    raw = factor * quantile_nearest_rank(lats, 0.95)
     return float(math.ceil(raw / L_SLA_ROUND_MS) * L_SLA_ROUND_MS)
 
 
@@ -75,9 +75,9 @@ def next_users(users: int, util: float, band: tuple[float, float]) -> int:
     return max(1, target)
 
 
-def g6(p99s: list[float], fails: list[float], l_sla_ms: float, e_sla: float) -> dict[str, Any]:
-    cv = statistics.pstdev(p99s) / statistics.fmean(p99s)
-    breach = sum(1 for p, f in zip(p99s, fails, strict=True) if p > l_sla_ms or f > e_sla) / len(p99s)
+def g6(lats: list[float], fails: list[float], l_sla_ms: float, e_sla: float) -> dict[str, Any]:
+    cv = statistics.pstdev(lats) / statistics.fmean(lats)
+    breach = sum(1 for p, f in zip(lats, fails, strict=True) if p > l_sla_ms or f > e_sla) / len(lats)
     return {"cv": cv, "breach_share": breach, "pass": cv < G6_MAX_CV and breach < G6_MAX_BREACH_SHARE}
 
 
@@ -106,7 +106,7 @@ class Calibrator:
             self.k += 1
             f, state = impute(raw, state, self.c)
             fe = f.services[FRONTEND]
-            out.append({"t_wall": self.clock.wall(k + 1), "p99_ms": f.p99_ms, "fail": f.fail_ratio, "rps": f.rps,
+            out.append({"t_wall": self.clock.wall(k + 1), "latency_ms": f.latency_ms, "client_p99_ms": f.client_p99_ms, "fail": f.fail_ratio, "rps": f.rps,
                         "n": raw.locust.n, "stale": f.stale,
                         "frontend_util": fe.cpu_cores / (self.limits[FRONTEND].cpu_cores * max(1.0, fe.status_replicas)),
                         "frontend_throttle": fe.throttle})
@@ -184,20 +184,22 @@ def main(argv: list[str] | None = None) -> int:
     ticks_path = out_dir / f"{stamp}.jsonl"
     ticks_path.write_text("".join(json.dumps(t) + "\n" for t in steady))
     valid = [t for t in steady if not t["stale"]]
-    p99s, fails = [t["p99_ms"] for t in valid], [t["fail"] for t in valid]
-    l_sla = l_sla_from(p99s, contract.sla.l_sla_factor)
+    lats, fails = [t["latency_ms"] for t in valid], [t["fail"] for t in valid]
+    l_sla = l_sla_from(lats, contract.sla.l_sla_factor)
     rps_base = statistics.median(t["rps"] for t in valid)
-    gate = g6(p99s, fails, l_sla, contract.sla.e_sla)
+    gate = g6(lats, fails, l_sla, contract.sla.e_sla)
     summary = {
         "stamp": stamp, "u_base": u_base, "search": search, "steady_ticks": len(steady), "valid_ticks": len(valid),
         "stale_share": 1 - len(valid) / len(steady), "l_sla_ms": l_sla, "rps_base": rps_base,
-        "p99_median_ms": statistics.median(p99s), "p99_q95_ms": quantile_nearest_rank(p99s, 0.95),
+        "sla_quantile": contract.sla.latency_quantile,
+        "latency_median_ms": statistics.median(lats), "latency_q95_ms": quantile_nearest_rank(lats, 0.95),
         "frontend_util_median": statistics.median(t["frontend_util"] for t in valid), "g6": gate,
         "ticks_file": str(ticks_path.relative_to(REPO_ROOT)), "git_sha": _git("rev-parse", "HEAD"),
     }
     (out_dir / f"{stamp}.summary.json").write_text(json.dumps(summary, indent=1))
     print(json.dumps({k: summary[k] for k in ("u_base", "l_sla_ms", "rps_base", "valid_ticks", "stale_share",
-                                               "p99_median_ms", "p99_q95_ms", "frontend_util_median", "g6")},
+                                               "sla_quantile", "latency_median_ms", "latency_q95_ms",
+                                               "frontend_util_median", "g6")},
                      indent=1))
     if not gate["pass"]:
         print(f"calibrate: G6 FAILED (CV {gate['cv']:.3f} vs < {G6_MAX_CV}; breach {gate['breach_share']:.2%} vs "

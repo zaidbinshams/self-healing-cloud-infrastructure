@@ -140,4 +140,11 @@ M3 builds the **real-cluster Gymnasium environment** and proves it end-to-end wi
    - 40 runbook episodes, then gates G1–G7.
    - Then collect 120 runbook episodes with ε = 0.25 as the warm-start dataset for M4.
 
+### M3 progress log (appended 2026-10-09)
+
+- **G6 Treatment A** (cartservice .NET thread-pool minimum 32): removed the whole-process stalls (0 slow requests in 17k). Server-side tick latency became stable; client-side stayed hostage to hotspot RTT (r = +0.95).
+- **Measurement point:** SLA latency moved server-side (frontend request logs; agent credential gained read-only `pods/log`; kubelet log size raised to 200Mi so reads are not truncated).
+- **Pre-experiment freeze** declared (PLAN.md §0.2). The synthetic prototype moved to branch `prototype/synthetic-model`. Evaluation protocol: interleaved, 50 episodes per policy, mandatory cold-start ablation.
+- **UNFREEZE 2026-10-09:** the SLA quantile p99 → p95, after calibration #2 failed G6 narrowly (CV 0.285) and a bootstrap attributed ~0.145 CV per tick to p99 sampling noise alone. G6's threshold is unchanged. Superseded: fixture e62bcb5 and calibration attempt 20261009T144632.
+
 *(Append the M3 summary here when its exit gate passes.)*

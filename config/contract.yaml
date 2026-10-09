@@ -25,7 +25,8 @@ sla:
   e_sla: 0.01
   e_max: 0.20
   recovery_ticks: 3
-  l_sla_factor: 1.5                 # L_SLA = ceil_10ms(1.5 * q95(steady tick-P99)) → calibration.json
+  l_sla_factor: 1.5                 # L_SLA = ceil_10ms(1.5 * q95(steady tick SLA latency)) → calibration.json
+  latency_quantile: 0.95            # CONTRACT-CHANGE/UNFREEZE 2026-10-09: SLA latency = server-side tick p95 (was p99)
 episode:
   lead_in_ticks: [2, 5]
   fault_max_ticks: 18

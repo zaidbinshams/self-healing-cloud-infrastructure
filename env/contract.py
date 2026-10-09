@@ -96,6 +96,7 @@ class SlaCfg:
     e_max: float
     recovery_ticks: int
     l_sla_factor: float
+    latency_quantile: float            # SLA latency = server-side quantile of the tick (§5.6)
 
 
 @dataclass(frozen=True)
@@ -285,6 +286,7 @@ def _validate(c: Contract) -> None:
     _require(0.0 < c.telemetry.server_log_min_completeness <= 1.0,
              "telemetry.server_log_min_completeness must be in (0, 1]")
     _require(0 <= c.sla.e_sla < c.sla.e_max <= 1, "sla: need 0 <= e_sla < e_max <= 1")
+    _require(0.5 <= c.sla.latency_quantile < 1.0, "sla.latency_quantile must be in [0.5, 1)")
     lo, hi = c.calibration.frontend_util_band
     _require(0.0 < lo < hi < 1.0, "calibration.frontend_util_band must satisfy 0 < lo < hi < 1")
     _require(set(c.golden_overrides) <= set(managed) | set(UNMANAGED_OVERRIDABLE),

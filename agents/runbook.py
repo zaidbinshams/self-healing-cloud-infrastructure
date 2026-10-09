@@ -19,7 +19,7 @@ from env.contract import FEATURES_PER_SERVICE, Calibration, Contract
 from env.k8s_actions import CATALOG, RESTART, RESTORE, SCALE
 from env.telemetry import (
     IDX_IN_FLIGHT,
-    P99_LOG_BASE_RATIO,
+    LATENCY_LOG_BASE_RATIO,
     ROLLOUT_RECENCY_TICKS,
     RPS_SCALE,
     SERVICE_OFFSET,
@@ -42,8 +42,8 @@ class View:
 
 
 def read_obs(obs: np.ndarray, contract: Contract, cal: Calibration) -> View:
-    p99_at_sla = math.log2(2.0) / math.log2(P99_LOG_BASE_RATIO)     # obs[0] when P99 == L_SLA
-    healthy = float(obs[0]) <= p99_at_sla + 1e-6 and float(obs[1]) <= contract.sla.e_sla + 1e-9
+    lat_at_sla = math.log2(2.0) / math.log2(LATENCY_LOG_BASE_RATIO)  # obs[0] when latency == L_SLA
+    healthy = float(obs[0]) <= lat_at_sla + 1e-6 and float(obs[1]) <= contract.sla.e_sla + 1e-9
     rps = float(obs[2]) * RPS_SCALE * cal.rps_base
     thr, spec, since = {}, {}, {}
     for i, d in enumerate(contract.cluster.managed):

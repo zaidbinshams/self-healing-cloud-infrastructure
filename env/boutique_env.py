@@ -255,7 +255,7 @@ class BoutiqueEnv(gym.Env):
             self.clock.wait_boundary(k + 1)
             raw = self.collector.collect(k, self.clock.wall(k), self.clock.wall(k + 1))
             features, state = impute(raw, state, self.c)
-            ok = not features.stale and healthy(features.p99_ms, features.fail_ratio, self.cal.l_sla_ms, self.c)
+            ok = not features.stale and healthy(features.latency_ms, features.fail_ratio, self.cal.l_sla_ms, self.c)
             streak = streak + 1 if ok else 0
             if streak >= need:
                 return raw, features
@@ -324,11 +324,11 @@ class BoutiqueEnv(gym.Env):
         obs = build_obs(features, prev, contract=self.c, limits=self.limits, l_sla_ms=self.cal.l_sla_ms,
                         rps_base=self.cal.rps_base, in_flight=ep.lock is not None,
                         ticks_since_action=ticks_since_action)
-        v = sla_violation(features.p99_ms, features.fail_ratio, self.cal.l_sla_ms, self.c)
+        v = sla_violation(features.latency_ms, features.fail_ratio, self.cal.l_sla_ms, self.c)
         rho = replica_surplus(self._spec(features), self.c)
         r = reward(v, CATALOG[a_exec].kind, rho, self.c)
 
-        ep.health.append(healthy(features.p99_ms, features.fail_ratio, self.cal.l_sla_ms, self.c))
+        ep.health.append(healthy(features.latency_ms, features.fail_ratio, self.cal.l_sla_ms, self.c))
         ep.cured.append(cured)
         ep.stale_run = ep.stale_run + 1 if features.stale else 0
         terminated, truncated, mttr_s = self._done_flags(k)

@@ -3,7 +3,7 @@
 Mutates the cluster (one real episode through BoutiqueEnv). The plan is fixed by the CLI; the
 oracle remedy comes from the expected-outcome grid of CLAUDE.md §5.2 (documentation only, never
 agent input). Before acting, the fault is observed for `runbook.debounce_ticks` ticks, which gives:
-  * detectability: did tick-P99 or the failure ratio exceed the SLA (L_SLA / e_sla) before any
+  * detectability: did tick SLA latency or the failure ratio exceed the SLA (L_SLA / e_sla) before any
     remedy? A fault the SLA cannot see cannot be learned (G6 discussion, 2026-10-09);
   * G7 evidence: F4 — is frontend the most throttled managed service and >= θ?
                  F2 — does the target's throttle reach >= θ?
@@ -98,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         while not (terminated or truncated):
             ep = env.ep
             ready = acted_at is None and len(fault_ticks) >= c.runbook.debounce_ticks
-            still_bad = ep.features is not None and ep.features.p99_ms > cal.l_sla_ms
+            still_bad = ep.features is not None and ep.features.latency_ms > cal.l_sla_ms
             if obs["mask"][remedy] and (ready or (plan.fault == "F4" and acted_at is not None and still_bad)):
                 a = remedy                                   # F4 keeps scaling while still above the SLA
             else:
@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
             # evidence from every post-injection tick before the remedy (incl. the injection tick)
             if acted_at is None and env.ep.k_inject is not None and env.ep.features is not None:
                 f = env.ep.features
-                fault_ticks.append({"tick": last["tick"], "p99_ms": f.p99_ms, "fail": f.fail_ratio,
+                fault_ticks.append({"tick": last["tick"], "latency_ms": f.latency_ms, "fail": f.fail_ratio,
                                     "throttle": throttle_by_service(obs["obs"], c.cluster.managed)})
     except EnvironmentDegraded as exc:
         print(f"fault_smoke: environment degraded: {exc}", file=sys.stderr)
@@ -117,10 +117,10 @@ def main(argv: list[str] | None = None) -> int:
         return 3
     env.close()
 
-    max_p99 = max((t["p99_ms"] for t in fault_ticks), default=0.0)
+    max_lat = max((t["latency_ms"] for t in fault_ticks), default=0.0)
     max_fail = max((t["fail"] for t in fault_ticks), default=0.0)
-    detectable = max_p99 > cal.l_sla_ms or max_fail > c.sla.e_sla
-    result.update({"acted_at_tick": acted_at, "fault_ticks_observed": fault_ticks, "max_p99_before_remedy_ms": max_p99,
+    detectable = max_lat > cal.l_sla_ms or max_fail > c.sla.e_sla
+    result.update({"acted_at_tick": acted_at, "fault_ticks_observed": fault_ticks, "max_latency_before_remedy_ms": max_lat,
                    "max_fail_before_remedy": max_fail, "detectable": detectable, "cured": last.get("cured"),
                    "recovered": last.get("recovered"), "mttr_s": last.get("mttr_s"),
                    "terminated": terminated, "truncated": truncated})

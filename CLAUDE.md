@@ -129,7 +129,8 @@ The SLA latency $P99_t$ (health, reward, `obs[0]`, `L_SLA` calibration) is measu
 
 - **Why.** After the cartservice fix (G6 Treatment A) the cluster was stable (server-side tick-P99 CV 0.14–0.24), but client-side p99 tracked B↔A hotspot RTT (r = +0.95). The 30-min calibration failed G6 at CV 0.519, driven by network bursts no remediation action can affect. Measuring at the server keeps the reward tied to what the agent controls.
 - **Feasibility (scripts/server_latency_poc.py, 30 ticks at U_base 33).** Read + parse median 0.47 s, p95 0.64 s, max 1.31 s against the 3.0 s collection deadline. One read in 30 hit a hotspot reset (typed failure → stale). One read in 30 was truncated by container-log rotation; reads with `server_n < server_log_min_completeness · locust_n` are treated as missing (§5.5 rule 6a), never as data.
-- **Reporting.** Papers must state that SLA latency is server-side, and also report client-side p99.
+- **Quantile: p95, not p99 (UNFREEZE, human-approved 2026-10-09).** The 30-min server-side calibration still failed G6 narrowly (CV 0.285). A bootstrap over ~900 requests per tick showed p99 alone carries ~0.145 CV of pure sampling noise (decided by the ~8 slowest requests), against ~0.09 for p95. The SLA latency is therefore the server-side **p95** (`sla.latency_quantile: 0.95`); G6's threshold is unchanged.
+- **Reporting.** Papers must state that SLA latency is the server-side p95, and also report client-side p99.
 
 These threshold overrides, cluster-tuning changes and the measurement-point change are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
 
@@ -299,7 +300,8 @@ sla:
   e_sla: 0.01
   e_max: 0.20
   recovery_ticks: 3
-  l_sla_factor: 1.5                 # L_SLA = ceil_10ms(1.5 * q95(steady tick-P99)) → calibration.json
+  l_sla_factor: 1.5                 # L_SLA = ceil_10ms(1.5 * q95(steady tick SLA latency)) → calibration.json
+  latency_quantile: 0.95            # SLA latency = server-side tick p95 (UNFREEZE 2026-10-09; was p99)
 episode:
   lead_in_ticks: [2, 5]
   fault_max_ticks: 18
@@ -418,7 +420,7 @@ calibration:
 
 | Index | Name | Source | Formula |
 |---|---|---|---|
-| 0 | p99 | frontend server logs (server-side, §5.4) | `clip(log2(1 + P99_ms/L_SLA) / log2(21), 0, 1)` |
+| 0 | lat | frontend server logs (server-side p95, §5.4) | `clip(log2(1 + Lat_ms/L_SLA) / log2(21), 0, 1)` |
 | 1 | fail | Locust | `failures / total` |
 | 2 | rps | Locust | `clip(RPS / (3·RPS_base), 0, 1)` |
 | 3 | d_p99 | derived | `p99_t − p99_{t−1}` (0 on the first tick of an episode) |
@@ -459,7 +461,7 @@ Q_mem = sum by (deployment) (DEP(container_memory_working_set_bytes{namespace="b
 
 Node-level CPU for calibration comes from metrics-server (`metrics.k8s.io`) through the admin kubeconfig in `scripts/calibrate.py` only.
 
-**Server-side latency per tick** (agent client, concurrent with the other sources): list the `app=frontend` pods, read each pod's `server` log with `since_seconds = ceil(tick_s) + server_log_margin_s` (raw bytes), keep `"request complete"` lines whose timestamp falls in `(wall(T_k), wall(T_{k+1})]`, excluding `/_healthz`, and take the nearest-rank p99 of `http.resp.took_ms`. Locust counts a followed redirect once while the frontend logs both requests, so a complete read has `server_n ≈ 1.2 · locust_n`.
+**Server-side latency per tick** (agent client, concurrent with the other sources): list the `app=frontend` pods, read each pod's `server` log with `since_seconds = ceil(tick_s) + server_log_margin_s` (raw bytes), keep `"request complete"` lines whose timestamp falls in `(wall(T_k), wall(T_{k+1})]`, excluding `/_healthz`, and take the nearest-rank quantile `sla.latency_quantile` (p95) of `http.resp.took_ms`. Locust counts a followed redirect once while the frontend logs both requests, so a complete read has `server_n ≈ 1.2 · locust_n`.
 
 **Kubernetes reads per tick** (agent client):
 - `list_namespaced_deployment`: `spec.replicas`, `status.{replicas, availableReplicas, updatedReplicas, observedGeneration}`, `metadata.generation`.
@@ -496,7 +498,7 @@ Node-level CPU for calibration comes from metrics-server (`metrics.k8s.io`) thro
 ### 5.6 Reward, Health, Recovery
 
 ```
-ℓ_t = clip( log2(P99_t / L_SLA) / 3, 0, 1 )
+ℓ_t = clip( log2(Lat_t / L_SLA) / 3, 0, 1 )
 e_t = clip( (F_t − e_sla) / (e_max − e_sla), 0, 1 )
 v_t = clip( ℓ_t + e_t, 0, 1 )
 ρ_t = Σ_d max(0, spec_d − base_d) / replica_denominator
@@ -507,10 +509,10 @@ r_k = −( v_{k+1} + action_cost[kind(a_k^exec)] + w_replica · ρ_{k+1} )      
 - `a_k^exec` is the **executed** action. A failed dispatch is stored and charged as NOOP.
 - There is **no ΔMTTR term.** Do not add reward shaping beyond this formula.
 
-`P99_t` is the **server-side** p99 (§5.4, human-approved 2026-10-09); `F_t` remains Locust's failure ratio.
+`Lat_t` is the **server-side SLA latency**: the tick's p95 at `sla.latency_quantile` (§5.4; server-side and p95 both human-approved 2026-10-09). `F_t` remains Locust's failure ratio.
 
 **Health and recovery:**
-- **Healthy tick:** `H_t := P99_t ≤ L_SLA ∧ F_t ≤ e_sla`.
+- **Healthy tick:** `H_t := Lat_t ≤ L_SLA ∧ F_t ≤ e_sla`.
 - **Recovered at tick t:** `t > k_inject ∧ H_t ∧ H_{t+1} ∧ H_{t+2} ∧ cure_condition(fault)`. Termination happens at tick t+2.
 
 **MTTR and episode endings:**
