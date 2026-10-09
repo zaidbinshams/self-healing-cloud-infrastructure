@@ -15,6 +15,8 @@ telemetry:
   locust_timeout_s: [0.5, 1.5]
   locf_max_ticks: 2
   stale_truncate_ticks: 3
+  server_log_margin_s: 3            # CONTRACT-CHANGE 2026-10-09: P99 from frontend server logs (G6 option 1)
+  server_log_min_completeness: 0.9  # server_n/locust_n below this = truncated read (normal ≈ 1.2: redirects)
 locust:
   wait_s: [0.5, 1.5]
   request_timeout_s: 5

@@ -79,6 +79,8 @@ class TelemetryCfg:
     locust_timeout_s: tuple[float, float]
     locf_max_ticks: int
     stale_truncate_ticks: int
+    server_log_margin_s: int               # server latency: log read covers tick_s + margin
+    server_log_min_completeness: float     # server_n / locust_n below this => read truncated => missing
 
 
 @dataclass(frozen=True)
@@ -279,6 +281,9 @@ def _validate(c: Contract) -> None:
         _require(0 < connect_s and 0 < read_s, f"telemetry.{name} must be positive")
     _require(c.telemetry.locf_max_ticks >= 0, "telemetry.locf_max_ticks must be >= 0")
     _require(c.telemetry.stale_truncate_ticks >= 1, "telemetry.stale_truncate_ticks must be >= 1")
+    _require(c.telemetry.server_log_margin_s >= 0, "telemetry.server_log_margin_s must be >= 0")
+    _require(0.0 < c.telemetry.server_log_min_completeness <= 1.0,
+             "telemetry.server_log_min_completeness must be in (0, 1]")
     _require(0 <= c.sla.e_sla < c.sla.e_max <= 1, "sla: need 0 <= e_sla < e_max <= 1")
     lo, hi = c.calibration.frontend_util_band
     _require(0.0 < lo < hi < 1.0, "calibration.frontend_util_band must satisfy 0 < lo < hi < 1")

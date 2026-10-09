@@ -89,6 +89,8 @@ def _agent_matrix(ns: str) -> list[AccessCase]:
         ("get", "", "pods", "", ns, True),
         ("list", "", "pods", "", ns, True),
         ("watch", "", "pods", "", ns, True),
+        ("get", "", "pods", "log", ns, True),           # server-side SLA latency (2026-10-09)
+        ("get", "", "pods", "log", "kube-system", False),
         ("delete", "", "pods", "", ns, False),
         ("delete", "apps", "deployments", "", ns, False),
         ("create", "apps", "deployments", "", ns, False),

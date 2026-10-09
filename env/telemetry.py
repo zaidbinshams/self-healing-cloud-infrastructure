@@ -23,6 +23,7 @@ import time
 from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +41,12 @@ POD_TO_DEPLOYMENT_RE = r"^(.+)-[a-z0-9]{6,10}-[a-z0-9]{5}$"
 _POD_RE = re.compile(POD_TO_DEPLOYMENT_RE)
 _SEL = '{namespace="boutique",container="server"}'
 PROM_METRICS = ("cpu", "thr", "mem")
-SOURCES = ("locust", "cpu", "thr", "mem", "deployments", "pods")
+SOURCES = ("locust", "cpu", "thr", "mem", "deployments", "pods", "server")
+# Server-side latency (G6 option 1, 2026-10-09): frontend request logs, `http.resp.took_ms`.
+SERVER_DEPLOYMENT = "frontend"
+SERVER_CONTAINER = "server"
+SERVER_HEALTH_PATH = "/_healthz"
+SERVER_LOG_READERS = 4                 # concurrent per-pod log reads (frontend max replicas = 3)
 
 # Formula constants of the observation contract (CLAUDE.md §5.3).
 P99_LOG_BASE_RATIO = 21.0          # p99 = log2(1 + P99/L_SLA) / log2(21)
@@ -139,6 +145,20 @@ class PodsResult:
 
 
 @dataclass(frozen=True)
+class ServerLatencyResult:
+    """Server-side latency of frontend requests completed in the window (from its request logs)."""
+    ok: bool
+    n: int = 0
+    p50_ms: float = 0.0
+    p99_ms: float = 0.0
+    pods: int = 0
+    bytes: int = 0
+    error_type: str = ""
+    error: str = ""
+    latency_s: float = 0.0
+
+
+@dataclass(frozen=True)
 class RawTick:
     """Everything collected for one window (wall(T_k), wall(T_{k+1})]; nothing imputed yet."""
     tick: int
@@ -149,10 +169,11 @@ class RawTick:
     deployments: DeploymentsResult
     pods: PodsResult
     collect_s: float
+    server: ServerLatencyResult = field(default_factory=lambda: ServerLatencyResult(False, error_type="absent"))
 
     def source_ok(self) -> dict[str, bool]:
         return {"locust": self.locust.ok, **{m: self.prom[m].ok for m in PROM_METRICS},
-                "deployments": self.deployments.ok, "pods": self.pods.ok}
+                "deployments": self.deployments.ok, "pods": self.pods.ok, "server": self.server.ok}
 
 
 def raw_tick_to_dict(raw: RawTick) -> dict[str, Any]:
@@ -170,6 +191,8 @@ def raw_tick_from_dict(d: Mapping[str, Any]) -> RawTick:
                                                            for k, v in deps["items"].items()}}),
         pods=PodsResult(**d["pods"]),
         collect_s=float(d["collect_s"]),
+        server=(ServerLatencyResult(**d["server"]) if "server" in d
+                else ServerLatencyResult(False, error_type="absent")),   # fixtures recorded before 2026-10-09
     )
 
 
@@ -268,6 +291,59 @@ def fetch_pods(core: client.CoreV1Api, ns: str, managed: tuple[str, ...],
     return dataclasses.replace(result, latency_s=time.monotonic() - t0)
 
 
+def _log_ts(ts: str) -> float:
+    head, frac = ts.rstrip("Z").split(".")
+    return datetime.fromisoformat(f"{head}.{frac[:6]}").replace(tzinfo=timezone.utc).timestamp()
+
+
+def server_window_latencies(text: str, t_from_wall: float, t_to_wall: float) -> list[float]:
+    """`http.resp.took_ms` of non-health requests completed in (t_from, t_to] (A's log clock). Pure."""
+    out = []
+    for line in text.splitlines():
+        if '"request complete"' not in line:
+            continue
+        try:
+            rec = json.loads(line)
+            if rec.get("http.req.path") == SERVER_HEALTH_PATH:
+                continue
+            t = _log_ts(rec["timestamp"])
+            if t_from_wall < t <= t_to_wall:
+                out.append(float(rec["http.resp.took_ms"]))
+        except (json.JSONDecodeError, KeyError, ValueError):
+            continue                        # partial line at a rotation boundary; completeness check covers it
+    return out
+
+
+def _nearest_rank(sorted_xs: list[float], q: float) -> float:
+    return sorted_xs[max(0, math.ceil(q * len(sorted_xs)) - 1)]
+
+
+def fetch_server_latency(core: client.CoreV1Api, ns: str, t_from_wall: float, t_to_wall: float, since_s: int,
+                         timeout_s: tuple[float, float],
+                         readers: concurrent.futures.ThreadPoolExecutor) -> ServerLatencyResult:
+    """Read every frontend pod's log tail concurrently and compute server p50/p99 for the window."""
+    t0 = time.monotonic()
+    try:
+        pods = [p.metadata.name for p in core.list_namespaced_pod(
+            ns, label_selector=f"app={SERVER_DEPLOYMENT}", _request_timeout=timeout_s).items]
+
+        def read(pod: str) -> bytes:
+            return core.read_namespaced_pod_log(pod, ns, container=SERVER_CONTAINER, since_seconds=since_s,
+                                                _request_timeout=timeout_s, _preload_content=False).data
+        bodies = list(readers.map(read, pods))
+        lat = sorted(x for b in bodies for x in server_window_latencies(b.decode("utf-8", errors="replace"),
+                                                                        t_from_wall, t_to_wall))
+        result = (ServerLatencyResult(True, len(lat), _nearest_rank(lat, 0.50), _nearest_rank(lat, 0.99), len(pods),
+                                      sum(len(b) for b in bodies)) if lat else
+                  ServerLatencyResult(False, 0, pods=len(pods), bytes=sum(len(b) for b in bodies),
+                                      error_type="no_requests", error="no completed requests in the window"))
+    except ApiException as exc:
+        result = ServerLatencyResult(False, error_type=f"ApiException:{exc.status}", error=str(exc.reason)[:300])
+    except urllib3.exceptions.HTTPError as exc:
+        result = ServerLatencyResult(False, error_type=type(exc).__name__, error=str(exc)[:300])
+    return dataclasses.replace(result, latency_s=time.monotonic() - t0)
+
+
 # ----------------------------------------------------------------------------- collector (I/O)
 
 class Collector:
@@ -286,6 +362,8 @@ class Collector:
         # keeps the next tick's six submissions from queueing behind them.
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=2 * len(SOURCES),
                                                            thread_name_prefix="telemetry")
+        self._log_readers = concurrent.futures.ThreadPoolExecutor(max_workers=SERVER_LOG_READERS,
+                                                                  thread_name_prefix="server-log")
 
     def _failure(self, source: str, eval_time_s: float, error_type: str, error: str) -> Any:
         if source == "locust":
@@ -294,6 +372,8 @@ class Collector:
             return PromResult(False, source, eval_time_s, error_type=error_type, error=error)
         if source == "deployments":
             return DeploymentsResult(False, error_type=error_type, error=error)
+        if source == "server":
+            return ServerLatencyResult(False, error_type=error_type, error=error)
         return PodsResult(False, error_type=error_type, error=error)
 
     def collect(self, tick: int, t_from_wall: float, t_to_wall: float) -> RawTick:
@@ -305,6 +385,9 @@ class Collector:
                                           tel.prom_timeout_s, managed)) for m in PROM_METRICS},
             "deployments": lambda: fetch_deployments(self.apps, ns, managed, tel.k8s_timeout_s),
             "pods": lambda: fetch_pods(self.core, ns, managed, tel.k8s_timeout_s),
+            "server": lambda: fetch_server_latency(self.core, ns, t_from_wall, t_to_wall,
+                                                   math.ceil(self.c.clock.tick_s) + tel.server_log_margin_s,
+                                                   tel.k8s_timeout_s, self._log_readers),
         }
         t0 = time.monotonic()
         futures = {name: self._pool.submit(fn) for name, fn in jobs.items()}
@@ -324,10 +407,12 @@ class Collector:
                 self.events.emit("source_failed", component=f"telemetry.{name}", error_type=res.error_type,
                                  tick=tick, error=res.error)
         return RawTick(tick, t_from_wall, t_to_wall, results["locust"],
-                       {m: results[m] for m in PROM_METRICS}, results["deployments"], results["pods"], collect_s)
+                       {m: results[m] for m in PROM_METRICS}, results["deployments"], results["pods"], collect_s,
+                       results["server"])
 
     def close(self) -> None:
         self._pool.shutdown(wait=False, cancel_futures=True)
+        self._log_readers.shutdown(wait=False, cancel_futures=True)
 
 
 # ----------------------------------------------------------------------------- imputation (pure)
@@ -361,7 +446,10 @@ class ServiceFeatures:
 
 @dataclass(frozen=True)
 class TickFeatures:
-    """Finite, denormalized features for one tick after §5.5 imputation."""
+    """Finite, denormalized features for one tick after §5.5 imputation.
+
+    p99_ms is SERVER-side (frontend request logs) and drives health, reward and obs[0];
+    client_p99_ms (Locust, includes the B<->A link) is logged for reporting only."""
     p99_ms: float
     fail_ratio: float
     rps: float
@@ -369,6 +457,7 @@ class TickFeatures:
     stale: bool
     imputed: tuple[str, ...]          # keys filled by rule 3 (LOCF) or rule 4 (zero)
     failed_sources: tuple[str, ...]
+    client_p99_ms: float = 0.0
 
 
 class _Imputer:
@@ -409,7 +498,15 @@ def impute(raw: RawTick, state: ImputeState, contract: Contract) -> tuple[TickFe
     # Rule 6/7 — Locust: endpoint failure or n == 0 (Locust dead) -> carry forward + stale.
     loc = raw.locust
     loc_ok = loc.ok and loc.n > 0
-    p99_ms = imp.take("locust/p99_ms", loc.p99_ms if loc_ok else None)
+    client_p99_ms = imp.take("locust/p99_ms", loc.p99_ms if loc_ok else None)
+    # Server-side p99 (G6 option 1): valid only if the log read was complete relative to Locust's count;
+    # a read truncated by container-log rotation is missing data, never a measurement.
+    srv = raw.server
+    complete = srv.ok and srv.n > 0 and (not loc_ok
+                                         or srv.n >= contract.telemetry.server_log_min_completeness * loc.n)
+    p99_ms = imp.take("server/p99_ms", srv.p99_ms if complete else None)
+    if srv.ok and not complete:
+        failed = (*failed, "server:incomplete")
     fail_ratio = imp.take("locust/fail_ratio", loc.failures / loc.n if loc_ok else None)
     rps = imp.take("locust/rps", loc.rps if loc_ok else None)
     if loc.ok and loc.n == 0:
@@ -460,13 +557,14 @@ def impute(raw: RawTick, state: ImputeState, contract: Contract) -> tuple[TickFe
                                       available, restarts_delta, since.get(d))
 
     features = TickFeatures(p99_ms, fail_ratio, rps, services,
-                            stale=bool(imp.imputed or failed), imputed=tuple(imp.imputed), failed_sources=failed)
+                            stale=bool(imp.imputed or failed), imputed=tuple(imp.imputed), failed_sources=failed,
+                            client_p99_ms=client_p99_ms)
     _assert_finite(features)
     return features, ImputeState(imp.new, prev_sum, generation, since)
 
 
 def _assert_finite(f: TickFeatures) -> None:
-    nums = [f.p99_ms, f.fail_ratio, f.rps]
+    nums = [f.p99_ms, f.fail_ratio, f.rps, f.client_p99_ms]
     for s in f.services.values():
         nums += [s.cpu_cores, s.throttle, s.mem_bytes, s.spec_replicas, s.status_replicas,
                  s.available_replicas, s.restarts_delta]

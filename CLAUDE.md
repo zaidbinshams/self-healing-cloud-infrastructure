@@ -67,7 +67,7 @@ The other services run but are outside the agent's state and action space.
 | Kubeconfig | Used by | Scope |
 |---|---|---|
 | `config/kube/admin.kubeconfig` | Humans and bootstrap scripts **only** | Full cluster |
-| `config/kube/agent.kubeconfig` | `env/k8s_actions.py` executor and telemetry reads | `boutique`: deployments get/list/watch/patch, deployments/scale get/patch, pods get/list/watch |
+| `config/kube/agent.kubeconfig` | `env/k8s_actions.py` executor and telemetry reads | `boutique`: deployments get/list/watch/patch, deployments/scale get/patch, pods get/list/watch, pods/log get (server-side latency, 2026-10-09) |
 | `config/kube/controller.kubeconfig` | `env/injector.py` and `reset()` | `boutique`: deployments + scale get/list/patch; pods get/list/delete; `stresschaos.chaos-mesh.org` create/get/list/delete |
 
 **GPU.** There is no GPU anywhere in this project. Torch is the CPU build on B.
@@ -121,7 +121,15 @@ Six changes to the cluster itself (not gate thresholds), made during M2 after th
 - **Currencyservice limit.** With frontend unthrottled, currencyservice at 200m was 0.41–0.46 throttled at the 50-user baseline, above the runbook's `throttle_threshold` (0.40). That made a healthy baseline look like F2 and made the M2 smoke gate (≥ 0.40) pass before any stress.
 - **Recommendationservice limit (M3, G6 test).** At 50 users it was 57% throttled (PSI wait 9%) while 2–3% of page renders took > 500 ms, making tick-P99 bimodal (CV 0.29–0.52 vs G6 < 0.25). It is outside the agent's state and action space; raising its limit removes background noise, not a fault the agent should handle.
 
-These threshold overrides and cluster-tuning changes are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
+#### Measurement point: server-side SLA latency (Human-Approved 2026-10-09)
+
+The SLA latency $P99_t$ (health, reward, `obs[0]`, `L_SLA` calibration) is measured **server-side**: the p99 of the frontend's own `http.resp.took_ms` over the tick window, read from its request logs each tick. Locust remains the load source and still supplies the failure ratio, RPS, and a client-side p99 that is logged (`client_p99_ms`) but never drives the agent.
+
+- **Why.** After the cartservice fix (G6 Treatment A) the cluster was stable (server-side tick-P99 CV 0.14–0.24), but client-side p99 tracked B↔A hotspot RTT (r = +0.95). The 30-min calibration failed G6 at CV 0.519, driven by network bursts no remediation action can affect. Measuring at the server keeps the reward tied to what the agent controls.
+- **Feasibility (scripts/server_latency_poc.py, 30 ticks at U_base 33).** Read + parse median 0.47 s, p95 0.64 s, max 1.31 s against the 3.0 s collection deadline. One read in 30 hit a hotspot reset (typed failure → stale). One read in 30 was truncated by container-log rotation; reads with `server_n < server_log_min_completeness · locust_n` are treated as missing (§5.5 rule 6a), never as data.
+- **Reporting.** Papers must state that SLA latency is server-side, and also report client-side p99.
+
+These threshold overrides, cluster-tuning changes and the measurement-point change are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
 
 ---
 
@@ -279,6 +287,8 @@ telemetry:
   locust_timeout_s: [0.5, 1.5]
   locf_max_ticks: 2
   stale_truncate_ticks: 3
+  server_log_margin_s: 3            # server latency: log read covers tick_s + margin (2026-10-09)
+  server_log_min_completeness: 0.9  # server_n / locust_n below this = truncated read (normal ≈ 1.2)
 locust:
   wait_s: [0.5, 1.5]
   request_timeout_s: 5
@@ -406,7 +416,7 @@ calibration:
 
 | Index | Name | Source | Formula |
 |---|---|---|---|
-| 0 | p99 | Locust `/tick` | `clip(log2(1 + P99_ms/L_SLA) / log2(21), 0, 1)` |
+| 0 | p99 | frontend server logs (server-side, §5.4) | `clip(log2(1 + P99_ms/L_SLA) / log2(21), 0, 1)` |
 | 1 | fail | Locust | `failures / total` |
 | 2 | rps | Locust | `clip(RPS / (3·RPS_base), 0, 1)` |
 | 3 | d_p99 | derived | `p99_t − p99_{t−1}` (0 on the first tick of an episode) |
@@ -447,6 +457,8 @@ Q_mem = sum by (deployment) (DEP(container_memory_working_set_bytes{namespace="b
 
 Node-level CPU for calibration comes from metrics-server (`metrics.k8s.io`) through the admin kubeconfig in `scripts/calibrate.py` only.
 
+**Server-side latency per tick** (agent client, concurrent with the other sources): list the `app=frontend` pods, read each pod's `server` log with `since_seconds = ceil(tick_s) + server_log_margin_s` (raw bytes), keep `"request complete"` lines whose timestamp falls in `(wall(T_k), wall(T_{k+1})]`, excluding `/_healthz`, and take the nearest-rank p99 of `http.resp.took_ms`. Locust counts a followed redirect once while the frontend logs both requests, so a complete read has `server_n ≈ 1.2 · locust_n`.
+
 **Kubernetes reads per tick** (agent client):
 - `list_namespaced_deployment`: `spec.replicas`, `status.{replicas, availableReplicas, updatedReplicas, observedGeneration}`, `metadata.generation`.
 - `list_namespaced_pod`: per-deployment sum of `containerStatuses[].restartCount`.
@@ -468,6 +480,7 @@ Node-level CPU for calibration comes from metrics-server (`metrics.k8s.io`) thro
 3. **Missing, NaN, or 0/0, and the last valid value is ≤ `locf_max_ticks` old:** carry the last value forward; set `telemetry_stale = 1`.
 4. **Otherwise:** 0; set `telemetry_stale = 1`.
 5. **Restart counter decreased** (a pod disappeared): delta = 0.
+6a. **Server latency source:** read failed, no completed requests, or `server_n < server_log_min_completeness · locust_n` (a read truncated by log rotation): rules 3/4 for `P99`, set stale.
 6. **Locust source:**
    - Endpoint failed, or `n == 0` (Locust is dead): carry forward p99/fail/rps and set stale.
    - Requests completed as timeouts: these are real data, not imputation.
@@ -491,6 +504,8 @@ r_k = −( v_{k+1} + action_cost[kind(a_k^exec)] + w_replica · ρ_{k+1} )      
 **Reward rules:**
 - `a_k^exec` is the **executed** action. A failed dispatch is stored and charged as NOOP.
 - There is **no ΔMTTR term.** Do not add reward shaping beyond this formula.
+
+`P99_t` is the **server-side** p99 (§5.4, human-approved 2026-10-09); `F_t` remains Locust's failure ratio.
 
 **Health and recovery:**
 - **Healthy tick:** `H_t := P99_t ≤ L_SLA ∧ F_t ≤ e_sla`.
