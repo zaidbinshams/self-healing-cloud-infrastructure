@@ -108,13 +108,14 @@ The design has B as the chrony time source. In the deployed environment **A serv
 
 #### Cluster tuning (Human-Approved 2026-10-02)
 
-Seven changes to the cluster itself (not gate thresholds), made during M2 after the live-edge freshness test of 2026-10-01:
+Eight changes to the cluster itself (not gate thresholds), made during M2–M3 (the first after the live-edge freshness test of 2026-10-01):
 
 | Change | Design | Deployed | Where |
 |---|---|---|---|
 | Kubelet cAdvisor housekeeping interval on A | 10 s (kubelet default; backs off to 15 s) | **5 s** | `k8s/k3s/kubelet-housekeeping.sh` (K3s drop-in `kubelet-arg+`) |
 | `frontend` CPU limit | 200m (upstream) | **400m** | `contract.yaml` `golden_overrides` (`CONTRACT-CHANGE`) → `golden.yaml` → `golden_live.json` |
-| `currencyservice` CPU limit | 200m (upstream) | **300m** | same path as frontend |
+| `currencyservice` CPU limit | 200m (upstream) | **300m**, then **500m** (2026-10-10) | same path as frontend |
+| `productcatalogservice` CPU limit | 200m (upstream) | **500m** (2026-10-10) | same path as frontend |
 | `recommendationservice` CPU limit (not managed) | 200m (upstream) | **500m** | same path; allow-listed in `env/contract.py` `UNMANAGED_OVERRIDABLE` |
 | `redis-cart` image (not managed) | `redis:alpine` (floating) | **`redis:8.10.2-alpine@sha256:3811…e5a0`** | `golden_overrides` `image` key (digest required); allow-listed |
 | `cartservice` .NET thread-pool minimum (G6 Treatment A) | `ProcessorCount` (= 1 at 300m) | **32** (`DOTNET_ThreadPool_ForceMinWorkerThreads=0x20`, hex) | `golden_overrides` `env.<NAME>` key; CPU limit unchanged |
@@ -124,6 +125,8 @@ Seven changes to the cluster itself (not gate thresholds), made during M2 after 
 - **Frontend limit.** At the 50-user baseline the 200m frontend was ~99 % CFS-throttled before any fault. That would have made the baseline itself unhealthy and blurred F4 (surge) with steady-state saturation. Frontend stays the intended F4 bottleneck; this is re-checked by the F4 fault smoke in M3.
 - **Currencyservice limit.** With frontend unthrottled, currencyservice at 200m was 0.41–0.46 throttled at the 50-user baseline, above the runbook's `throttle_threshold` (0.40). That made a healthy baseline look like F2 and made the M2 smoke gate (≥ 0.40) pass before any stress.
 - **Container log size (M3, 2026-10-09).** At 10Mi the frontend log rotated about every 13 ticks; a server-latency read straddling a rotation is truncated (1 in 30 in the feasibility run) and must be treated as missing (§5.5 rule 6a), which would exceed G2. At 200Mi it rotates about every 280 ticks.
+- **Currencyservice to 500m (M3, 2026-10-10).** With productcatalogservice at 500m, F4 latency after the frontend scale-out fell from ~200 ms to 80–90 ms but stayed above L_SLA (70 ms): currencyservice sat at its 300m limit (throttle 0.35–0.62 at 2.5–3×). All other services then had ≥ 40 % headroom.
+- **Productcatalogservice limit (M3, 2026-10-10).** Once the frontend scale-out received load (see "Load generator" below), the F4 smokes at 3.0× and 2.5× still never recovered: productcatalogservice, capped at 1 replica, sat at its 200m limit (throttle 0.87–0.96) with server p95 165–240 ms against L_SLA. No catalog action can relieve it, so F4 was uncurable. At baseline it uses ~0.10 cores; a 3× surge needs ~0.3. 500m keeps the frontend as F4's intended bottleneck.
 - **Recommendationservice limit (M3, G6 test).** At 50 users it was 57% throttled (PSI wait 9%) while 2–3% of page renders took > 500 ms, making tick-P99 bimodal (CV 0.29–0.52 vs G6 < 0.25). It is outside the agent's state and action space; raising its limit removes background noise, not a fault the agent should handle.
 
 #### Measurement point: server-side SLA latency (Human-Approved 2026-10-09)

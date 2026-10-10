@@ -42,7 +42,7 @@ replicas:
   max:  {frontend: 3, cartservice: 2, currencyservice: 2, productcatalogservice: 1}
 golden_overrides:                   # CONTRACT-CHANGE 2026-10-02: frontend 200m was ~99% CFS-throttled at U=50 before any fault
   frontend: {cpu_limit: "400m"}
-  currencyservice: {cpu_limit: "300m"}   # CONTRACT-CHANGE 2026-10-02: 200m was 0.41-0.46 throttled at U=50 (> runbook θ)
+  currencyservice: {cpu_limit: "500m"}   # CONTRACT-CHANGE 2026-10-02: 200m was 0.41-0.46 throttled at U=50 (> runbook θ) → 300m; CONTRACT-CHANGE 2026-10-10: 300m saturated (throttle 0.35-0.62) under F4 after frontend scale-out → 500m
   cartservice: {"env.DOTNET_ThreadPool_ForceMinWorkerThreads": "0x20"}   # CONTRACT-CHANGE 2026-10-09: G6 Treatment A (min 32 workers; hex per .NET)
   recommendationservice: {cpu_limit: "500m"}   # CONTRACT-CHANGE 2026-10-02: 200m was 57% throttled at U=50 (G6 tail-latency test)
   productcatalogservice: {cpu_limit: "500m"}   # CONTRACT-CHANGE 2026-10-10: 200m saturated (throttle 0.87-0.96) under F4 after frontend scale-out; F4 was uncurable
