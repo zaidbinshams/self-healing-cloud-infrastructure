@@ -82,3 +82,17 @@ def test_failed_injection_truncates_instead_of_running_forever(env):
     env.ep.inject_failed = True                       # k_inject stays None: no fault was injected
     env.ep.health, env.ep.cured = [True] * 5, [False] * 5
     assert env._done_flags(2) == (False, True, None)
+
+
+def test_run_policy_resume_bookkeeping(tmp_path):
+    import json
+
+    from agents.run_policy import completed_episodes, last_episode_number
+    summary = tmp_path / "episodes.jsonl"
+    tdir = tmp_path / "transitions"
+    tdir.mkdir()
+    assert completed_episodes(summary) == 0 and last_episode_number(summary, tdir) == 0
+    summary.write_text("".join(json.dumps({"episode": i, "interrupted": i == 3}) + "\n" for i in (1, 2, 3)))
+    (tdir / "episode_4.jsonl").write_text("{}\n")          # partial episode left by a crash
+    assert completed_episodes(summary) == 2                  # the interrupted one does not count
+    assert last_episode_number(summary, tdir) == 4           # never reuse episode 4's file

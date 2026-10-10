@@ -30,6 +30,25 @@ from env.boutique_env import EnvironmentDegraded, make_env
 from env.contract import ContractError
 
 _stop = False
+RESUME_SEED_STRIDE = 10_007        # resume reseeding: seed + stride * episodes_done (distinct, reproducible)
+
+
+def completed_episodes(summary_path: Path) -> int:
+    """Episodes finished (not interrupted) according to episodes.jsonl."""
+    if not summary_path.exists():
+        return 0
+    rows = [json.loads(line) for line in summary_path.read_text().splitlines() if line.strip()]
+    return sum(1 for r in rows if not r.get("interrupted"))
+
+
+def last_episode_number(summary_path: Path, transitions_dir: Path) -> int:
+    """Highest episode number already used by summaries or transition files (partial ones included)."""
+    nums = [0]
+    if summary_path.exists():
+        nums += [int(json.loads(line)["episode"]) for line in summary_path.read_text().splitlines() if line.strip()]
+    if transitions_dir.exists():
+        nums += [int(f.stem.split("_")[1]) for f in transitions_dir.glob("episode_*.jsonl")]
+    return max(nums)
 
 
 def _on_signal(signum: int, _frame: FrameType | None) -> None:
@@ -52,7 +71,8 @@ def choose(policy: str, rng: random.Random, runbook: Runbook | None, obs: dict[s
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--policy", choices=["noop", "random", "runbook"], required=True)
-    ap.add_argument("--episodes", type=int, required=True)
+    ap.add_argument("--episodes", type=int, required=True,
+                    help="TOTAL episodes for this run directory; a rerun resumes and runs only the remainder")
     ap.add_argument("--epsilon", type=float, default=0.0, help="runbook only: warm-start exploration")
     ap.add_argument("--no-faults", action="store_true", help="contract check: NULL episodes only")
     ap.add_argument("--seed", type=int, default=0)
@@ -61,23 +81,35 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     run = args.run or args.out.name
 
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    rng = random.Random(args.seed)
+    summary_path = args.out / "episodes.jsonl"
+    done = completed_episodes(summary_path)
+    remaining = args.episodes - done
+    if remaining <= 0:
+        print(f"run_policy: {done}/{args.episodes} episodes already complete in {summary_path}")
+        return 0
+    # Resume (watchdog restarts): reseed deterministically from (seed, episodes done) so a restart does
+    # not replay the same fault plans, and never append to a partially written transition file.
+    seed = args.seed + RESUME_SEED_STRIDE * done
+    random.seed(seed)
+    np.random.seed(seed)
+    rng = random.Random(seed)
     try:
-        env = make_env(run, args.seed, faults_enabled=not args.no_faults)
+        env = make_env(run, seed, faults_enabled=not args.no_faults)
     except (ContractError, RuntimeError) as exc:
         print(f"run_policy: {exc}", file=sys.stderr)
         return 2
-    runbook = Runbook(env.c, env.cal, epsilon=args.epsilon, rng=random.Random(args.seed + 1)) \
+    env.episode_count = last_episode_number(summary_path, env.transitions_root / run)
+    runbook = Runbook(env.c, env.cal, epsilon=args.epsilon, rng=random.Random(seed + 1)) \
         if args.policy == "runbook" else None
+    if done:
+        print(f"run_policy: resuming {run}: {done} done, {remaining} to go, starting after episode "
+              f"{env.episode_count}", flush=True)
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
     args.out.mkdir(parents=True, exist_ok=True)
-    summary_path = args.out / "episodes.jsonl"
 
     try:
-        for _ in range(args.episodes):
+        for _ in range(remaining):
             if _stop:
                 break
             obs, info = env.reset()
