@@ -32,6 +32,7 @@ import requests
 import urllib3
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
+from requests.adapters import HTTPAdapter
 
 from env.contract import FEATURES_PER_SERVICE, OBS_DIM, Contract, Limits
 from env.recorder import EventLog
@@ -225,11 +226,27 @@ def fetch_locust(locust_url: str, t_from_wall: float, t_to_wall: float,
     return dataclasses.replace(result, latency_s=time.monotonic() - t0)
 
 
+def make_http_session(pool_size: int) -> requests.Session:
+    """Keep-alive HTTP session with library retries disabled (§4.3.2).
+
+    A fresh TCP connection per query exposes every tick to wireless SYN loss: a lost SYN costs a 1 s
+    retransmit, which meets the 1.0 s Prometheus connect timeout and makes the tick stale (2026-10-10:
+    3/30 fixture ticks). Reusing pooled connections removes the handshake from the steady path.
+    """
+    session = requests.Session()
+    adapter = HTTPAdapter(pool_connections=1, pool_maxsize=pool_size, max_retries=0)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+
 def fetch_prom(prom_url: str, name: str, expr: str, eval_time_s: float,
-               timeout_s: tuple[float, float], managed: tuple[str, ...]) -> PromResult:
+               timeout_s: tuple[float, float], managed: tuple[str, ...],
+               session: requests.Session | None = None) -> PromResult:
     t0 = time.monotonic()
+    http: Any = session if session is not None else requests
     try:
-        resp = requests.get(f"{prom_url.rstrip('/')}/api/v1/query",
+        resp = http.get(f"{prom_url.rstrip('/')}/api/v1/query",
                             params={"query": expr, "time": f"{eval_time_s:.3f}"}, timeout=timeout_s)
         resp.raise_for_status()
         body = resp.json()
@@ -367,6 +384,7 @@ class Collector:
                                                            thread_name_prefix="telemetry")
         self._log_readers = concurrent.futures.ThreadPoolExecutor(max_workers=SERVER_LOG_READERS,
                                                                   thread_name_prefix="server-log")
+        self._prom_http = make_http_session(2 * len(PROM_METRICS))   # timed-out calls may still hold one
 
     def _failure(self, source: str, eval_time_s: float, error_type: str, error: str) -> Any:
         if source == "locust":
@@ -385,7 +403,7 @@ class Collector:
         jobs: dict[str, Callable[[], Any]] = {
             "locust": lambda: fetch_locust(self.locust_url, t_from_wall, t_to_wall, tel.locust_timeout_s),
             **{m: (lambda m=m: fetch_prom(self.prom_url, m, self.queries[m], t_to_wall,
-                                          tel.prom_timeout_s, managed)) for m in PROM_METRICS},
+                                          tel.prom_timeout_s, managed, self._prom_http)) for m in PROM_METRICS},
             "deployments": lambda: fetch_deployments(self.apps, ns, managed, tel.k8s_timeout_s),
             "pods": lambda: fetch_pods(self.core, ns, managed, tel.k8s_timeout_s),
             "server": lambda: fetch_server_latency(self.core, ns, t_from_wall, t_to_wall,
@@ -417,6 +435,7 @@ class Collector:
     def close(self) -> None:
         self._pool.shutdown(wait=False, cancel_futures=True)
         self._log_readers.shutdown(wait=False, cancel_futures=True)
+        self._prom_http.close()
 
 
 # ----------------------------------------------------------------------------- imputation (pure)

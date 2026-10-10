@@ -235,6 +235,7 @@ These threshold overrides, cluster-tuning changes, the measurement-point change 
    - Prometheus: `requests` with `timeout=(1.0, 2.5)`.
    - Locust: `timeout=(0.5, 1.5)`.
 2. **Disable library-level retries.** The tick protocol handles failures.
+   - Prometheus queries reuse one keep-alive session (`make_http_session`, retries 0; 2026-10-10): a fresh TCP connection per query exposed every tick to hotspot SYN loss (a lost SYN costs a 1 s retransmit, which meets the 1.0 s connect timeout).
 3. **Wrap every remote call in `try/except`, catching specific exceptions:**
    - `kubernetes.client.exceptions.ApiException`
    - `urllib3.exceptions.HTTPError` (covers `MaxRetryError`, `ReadTimeoutError`, `ProtocolError`)
