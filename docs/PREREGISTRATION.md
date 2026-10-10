@@ -1,6 +1,6 @@
 # Pre-Registration — Paper A Experiments (M4/M5)
 
-> Committed **before any M4 training run**. The git timestamp of this file is the registration time. Changes after training starts require an `UNFREEZE:` commit and must be reported in the paper. Frozen inputs: `config/contract.yaml`, `config/calibration.json` (U_base 30, rps_base 33.65, L_SLA 60 ms server-side p95; see Amendment 1), `config/golden_live.json`.
+> Committed **before any M4 training run**. The git timestamp of this file is the registration time. Changes after training starts require an `UNFREEZE:` commit and must be reported in the paper. Frozen inputs: `config/contract.yaml`, `config/calibration.json` (U_base 30, rps_base 34.0, L_SLA 70 ms server-side p95; see Amendments 1–2), `config/golden_live.json`.
 
 ## 1. Hypotheses
 
@@ -71,3 +71,7 @@ The M3 F4 smokes showed that F4 could not be cured by any policy, for three stac
 Re-calibration (`f5e4acb`): **U_base 30, rps_base 33.65, L_SLA 60 ms**, G6 CV 0.215 (passes the 0.25 design gate) with 0 breaches. At this state, F4 at 3.0× and at 2.5× recovers after SCALE_UP frontend (MTTR 80 s each), and F2 with one stress worker remains detectable on both targets (peaks 77 ms and 71 ms vs 60 ms).
 
 Unchanged: hypotheses, policies, schedule design, metrics, statistics, exclusions, stopping rules. Consequences for reporting: client-side p99 now includes one TCP handshake per request; the M3 runbook validation runs as stage 0 of `scripts/chain_m4.sh` before warm-start collection, and training starts only after gates G1–G7 pass or a human has reviewed them.
+
+### Amendment 2 — 2026-10-10, before M4 (telemetry transport)
+
+Prometheus queries now reuse one keep-alive HTTP session (`cdc39a4`; library retries still disabled), because a fresh TCP connection per query made ticks stale under hotspot SYN loss (2 of 30 fixture ticks). The change touches the calibration measurement path, so the calibration was redone (`b8b95e4`): **U_base 30, rps_base 34.0, L_SLA 70 ms**, G6 CV 0.239, 0 breaches, 1 of 90 ticks stale. This calibration is final for M4 and M5. Against it, F2 with one stress worker is a marginal, near-SLA fault (smoke peaks 77 ms cartservice, 71 ms currencyservice); results are reported per severity. Nothing else changes.
