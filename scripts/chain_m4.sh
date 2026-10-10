@@ -28,6 +28,22 @@ VALIDATION_EPISODES=20
 VAL_OUT=data/m3/runbook_eval
 read -r WARM_EPS WARM_N < <(python -c 'from env.contract import load_contract as l; r=l().runbook; print(r.warmstart_epsilon, r.warmstart_episodes)')
 
+# Locust keeper: Locust is not under the watchdog; if its process dies, restart it at U_base so the
+# stages' resets (which require Locust to answer) can recover. Stops with the chain.
+U_BASE=$(python -c 'import json; print(json.load(open("config/calibration.json"))["u_base"])')
+keep_locust() {
+  while true; do
+    if ! { [[ -f data/locust.pid ]] && kill -0 "$(cat data/locust.pid)" 2>/dev/null; }; then
+      echo "=== $(date -Is) locust keeper: Locust not running; restarting at $U_BASE users"
+      bash locust/run_locust.sh --users "$U_BASE" --background
+    fi
+    sleep 60
+  done
+}
+keep_locust &
+KEEPER=$!
+trap 'kill $KEEPER 2>/dev/null' EXIT
+
 stage() {   # stage <name> <killed-marker or -> <command...>
   local name="$1" killed="$2"; shift 2
   echo "=== $(date -Is) stage $name: $*"
