@@ -7,6 +7,9 @@ fixed valid values. Wait time and request timeout come from config/contract.yaml
 Every completed request is recorded as (t_B, response_ms, success) with t_B = time.time() on B
 at completion. A timeout counts as a failure with response_ms = request_timeout_s * 1000.
 
+Every request uses its own TCP connection (`Connection: close`) so Kubernetes' per-connection load
+balancing spreads load over all replicas after a scale-out.
+
 GET /tick?from=<unix>&to=<unix> aggregates requests completed in (from, to]:
     {"n": int, "failures": int, "p50_ms": float, "p99_ms": float, "rps": float}
 """
@@ -19,7 +22,7 @@ import random
 import time
 from collections import deque
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import gevent
 import yaml
@@ -132,6 +135,11 @@ class BoutiqueUser(FastHttpUser):
     wait_time = between(*WAIT_S)
     network_timeout = REQUEST_TIMEOUT_S
     connection_timeout = REQUEST_TIMEOUT_S
+    # One TCP connection per request (human-approved 2026-10-10). kube-proxy balances per connection,
+    # so keep-alive users stay pinned to the pods that existed when they connected and a scale-out
+    # never receives load (F4 smoke: new frontend replicas at 0.00 cores). Real traffic comes from many
+    # short-lived clients. The session lives in the shop_session-id cookie, not in the connection.
+    default_headers: ClassVar[dict[str, str]] = {"Connection": "close"}
 
     def on_start(self) -> None:
         self.index()

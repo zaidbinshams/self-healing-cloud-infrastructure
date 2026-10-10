@@ -135,7 +135,15 @@ The SLA latency $P99_t$ (health, reward, `obs[0]`, `L_SLA` calibration) is measu
 - **Quantile: p95, not p99 (UNFREEZE, human-approved 2026-10-09).** The 30-min server-side calibration still failed G6 narrowly (CV 0.285). A bootstrap over ~900 requests per tick showed p99 alone carries ~0.145 CV of pure sampling noise (decided by the ~8 slowest requests), against ~0.09 for p95. The SLA latency is therefore the server-side **p95** (`sla.latency_quantile: 0.95`); G6's threshold is unchanged.
 - **Reporting.** Papers must state that SLA latency is the server-side p95, and also report client-side p99.
 
-These threshold overrides, cluster-tuning changes and the measurement-point change are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
+#### Load generator: one connection per request (Human-Approved 2026-10-10)
+
+Locust sends `Connection: close` on every request (`locust/locustfile.py`, `default_headers`), so each request opens its own TCP connection.
+
+- **Why.** kube-proxy balances per connection. With keep-alive, every Locust user stays pinned to the pod that existed when it connected. In the F4 smoke of 2026-10-10 (3.0×), the frontend scaled to 3 replicas while the two new pods used 0.00 cores for the whole surge; the original pod stayed at its 0.4-core limit (throttle 0.85–0.94) and latency never recovered. F4 was therefore uncurable by any policy, and HPA scale-out would have been equally useless. Real traffic comes from many short-lived clients.
+- **Consequences.** Sessions are unaffected (they live in the `shop_session-id` cookie). Server-side SLA latency is unaffected; the logged client-side p99 includes one TCP handshake. The per-user request rate changes slightly, so `calibration.json` was re-measured under this load model (CONTRACT-CHANGE).
+- **Open question, to check in data rather than claim:** the gRPC backends (cartservice, currencyservice) may be pinned the same way (frontend → backend HTTP/2 connections), which would make SCALE_UP X ineffective for F2.
+
+These threshold overrides, cluster-tuning changes, the measurement-point change and the load-generator change are the **only** approved deviations. §4.5.5 still applies to every other gate, and to any further loosening.
 
 ---
 
@@ -678,6 +686,7 @@ spec:
     - Wrap envs with `DummyVectorEnv` with **exactly one** env (one real cluster). Never use `SubprocVectorEnv`.
     - If Tianshou's discrete SAC cannot support rules 1–5 cleanly, subclass it and override `learn`.
     - An in-house SAC that uses only Tianshou's buffers needs human approval.
+    - **Approved 2026-10-10: in-house implementation, no Tianshou.** Masked discrete SAC and the PER sum-tree are written in plain PyTorch/NumPy (`agents/masked_discrete_sac.py`, `agents/per_buffer.py`), with every rule above unit-tested. Reason: Tianshou 1.2.0 requires gymnasium < 0.29 and numpy < 2 (would downgrade pinned dependencies); 2.0.1 adds numba, tensorboard, pettingzoo, h5py and pandas, and its collector does not fit the tick loop (stale s′ not inserted, 1.0 s update budget), so `learn` and the loop would be rewritten anyway. The one-env `DummyVectorEnv` rule above does not apply; the training loop drives the single real env directly.
 
 ---
 
