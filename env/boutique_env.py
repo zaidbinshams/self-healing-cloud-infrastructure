@@ -65,6 +65,18 @@ RESET_RESTORE_ID = -1          # reset() RESTOREs are not catalog actions and ne
 TRANSITIONS_ROOT = REPO_ROOT / "data" / "transitions"
 
 
+def latest_pod_change(times_s: list[float], now_s: float) -> tuple[float | None, int]:
+    """Latest pod change, ignoring stamps more than SETTLE_AFTER_POD_CHANGE_S in the future.
+
+    A node booted with a wrong clock (e.g. RTC read as local time, then stepped back by chrony) leaves
+    kubelet condition stamps hours ahead; under the 200 ms skew gate such a stamp cannot be a real
+    change, and counting it would block the settle wait until wall time catches up.
+    Returns (latest valid stamp or None, number of stamps ignored).
+    """
+    valid = [t for t in times_s if t <= now_s + SETTLE_AFTER_POD_CHANGE_S]
+    return (max(valid) if valid else None), len(times_s) - len(valid)
+
+
 class EnvironmentDegraded(RuntimeError):
     """reset() could not restore a healthy golden cluster even after a hard reset (§5.9 step 4)."""
 
@@ -231,7 +243,11 @@ class BoutiqueEnv(gym.Env):
             for cond in p.status.conditions or []:
                 if cond.last_transition_time is not None:
                     times.append(cond.last_transition_time.timestamp())
-        return max(times) if times else None
+        last, n_future = latest_pod_change(times, time.time())
+        if n_future:
+            self.events.emit("pod_time_in_future", component="env", error_type="clock", tick=None,
+                             ignored=n_future)
+        return last
 
     def _wait_pods_settled(self) -> None:
         end = time.monotonic() + RESET_DEADLINE_S

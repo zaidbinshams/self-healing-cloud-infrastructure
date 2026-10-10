@@ -154,3 +154,13 @@ def test_transition_recorder_flushes_and_validates(tmp_path):
     with pytest.raises(ValueError):
         rec.append({"tick": 1})
     rec.close()
+
+
+def test_latest_pod_change_ignores_future_clock_jump_stamps():
+    from env.boutique_env import SETTLE_AFTER_POD_CHANGE_S, latest_pod_change
+    now = 1_000_000.0
+    jumped = now + 5.5 * 3600            # kubelet stamp from a boot with the RTC read as IST
+    assert latest_pod_change([now - 100, jumped, now - 40], now) == (now - 40, 1)
+    assert latest_pod_change([now + 1.0], now) == (now + 1.0, 0)          # small skew is kept
+    assert latest_pod_change([now + SETTLE_AFTER_POD_CHANGE_S + 1], now) == (None, 1)
+    assert latest_pod_change([], now) == (None, 0)
