@@ -157,4 +157,27 @@ M3 builds the **real-cluster Gymnasium environment** and proves it end-to-end wi
 
   Run 3's CV is 0.237 without its single slowest tick. Run 3's recorded data is the calibration (U_base 33, L_SLA 60 ms). All three are to be reported in the paper.
 
+### M3 progress log (appended 2026-10-10)
+
+- **Clock jump on Machine A.** A rebooted with its RTC read as IST (+5 h 30 min until chrony stepped it). Kubelet pod-condition stamps were left in the future, so reset() never settled. Fix: future stamps are ignored and logged (e54b807). A one-time fix on A (K3s after time-sync) is pending with the user.
+- **F4 was uncurable; three stacked causes, each fixed with human approval:**
+  1. Locust keep-alive pinned load to the original frontend pod (new replicas at 0.00 cores) → one connection per request (4db5dab).
+  2. productcatalogservice saturated at 200m → 500m (2d1f678).
+  3. currencyservice saturated at 300m → 500m (a675b86).
+  At the final state, F4 at 3.0× and 2.5× recovers after SCALE_UP frontend (MTTR 80 s each).
+- **Stale ticks from hotspot SYN loss.** Each Prometheus query opened a new TCP connection (2 of 30 fixture ticks stale from ConnectTimeout) → keep-alive session, retries still 0 (cdc39a4).
+- **Calibrations today** (each superseded by the next; all 30-min windows):
+
+  | Run | State | U_base | rps_base | L_SLA | CV | breach | stale |
+  |---|---|---|---|---|---|---|---|
+  | 20261010T122211 | Connection: close | 30 | 34.2 | 90 | 0.283 | 0 | 1/90 |
+  | 20261010T131705 | + pc 500m | 30 | 33.95 | 70 | 0.279 | 0 | 3/90 (10 s hotspot outage 13:39) |
+  | 20261010T142605 | + currency 500m | 30 | 33.65 | 60 | 0.215 | 0 | 1/90 |
+  | **20261010T154420** | + Prometheus keep-alive (**final**, b8b95e4) | **30** | **34.0** | **70** | **0.239** | **0** | **1/90** |
+
+  The last two differ only in transport (same physics): L_SLA moved by one 10 ms step (q95 39 → 41 ms). The final CV also passes the 0.25 design gate.
+- **Smokes at the final limits** (at L_SLA 60, f5e4acb): F2 cartservice w1 peak 77 ms, F2 currencyservice w1 peak 71 ms. Against the final L_SLA 70, the w1 severity is marginal: a mild, near-SLA ("gray") fault. Kept as is and to be reported per severity; F2 w2 is strongly detectable.
+- **SAC + PER** (in-house, approved; 3a23f2d). Dry run (warm start from the smoke transitions, plumbing only): the offline phase (2000 steps, 8.7 s), probes, training updates (4 per tick), checkpoints and resume with buffer rebuild (stale s′ dropped, probe steps skipped) all worked.
+- **Pre-registration** committed (ac0e24a) with Amendment 1 (b53e68d) before any training. The runbook validation is stage 0 of `scripts/chain_m4.sh`; training is gated on G1–G7.
+
 *(Append the M3 summary here when its exit gate passes.)*
