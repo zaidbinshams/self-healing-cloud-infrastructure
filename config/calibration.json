@@ -1,7 +1,7 @@
 {
   "l_sla_ms": 60.0,
-  "rps_base": 38.25000775158562,
-  "u_base": 33,
-  "calibrated_at": "2026-10-09T10:09:59+00:00",
-  "env_git_sha": "16cda5607a522fc9001c145ef10e523fec684009"
+  "rps_base": 33.65024389443741,
+  "u_base": 30,
+  "calibrated_at": "2026-10-10T09:29:27.604679+00:00",
+  "env_git_sha": "f44b88b95e3acc0ee98c9707700e193a3dcc07a7"
 }
