@@ -42,7 +42,25 @@ keep_locust() {
 }
 keep_locust &
 KEEPER=$!
-trap 'kill $KEEPER 2>/dev/null' EXIT
+
+# Network logger: every 30 s, LAN (B -> A, ping A_IP) and internet (ping 1.1.1.1) reachability; logs
+# only state changes to data/logs/network.log, so outages (C's hotspot or its uplink) can be matched to
+# stale/excluded episodes even while Claude Code itself is offline.
+net_watch() {
+  local lan_prev="" inet_prev="" lan inet
+  while true; do
+    ping -c1 -W2 "$A_IP" >/dev/null 2>&1 && lan=up || lan=DOWN
+    ping -c1 -W2 1.1.1.1 >/dev/null 2>&1 && inet=up || inet=DOWN
+    if [[ "$lan" != "$lan_prev" || "$inet" != "$inet_prev" ]]; then
+      echo "$(date -Is) lan=$lan internet=$inet" >> data/logs/network.log
+      lan_prev=$lan; inet_prev=$inet
+    fi
+    sleep 30
+  done
+}
+net_watch &
+NETWATCH=$!
+trap 'kill $KEEPER $NETWATCH 2>/dev/null' EXIT
 
 stage() {   # stage <name> <killed-marker or -> <command...>
   local name="$1" killed="$2"; shift 2
