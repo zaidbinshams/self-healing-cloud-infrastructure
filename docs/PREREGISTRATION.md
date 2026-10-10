@@ -1,6 +1,6 @@
 # Pre-Registration — Paper A Experiments (M4/M5)
 
-> Committed **before any M4 training run**. The git timestamp of this file is the registration time. Changes after training starts require an `UNFREEZE:` commit and must be reported in the paper. Frozen inputs: `config/contract.yaml`, `config/calibration.json` (U_base 33, L_SLA 60 ms server-side p95), `config/golden_live.json`.
+> Committed **before any M4 training run**. The git timestamp of this file is the registration time. Changes after training starts require an `UNFREEZE:` commit and must be reported in the paper. Frozen inputs: `config/contract.yaml`, `config/calibration.json` (U_base 30, rps_base 33.65, L_SLA 60 ms server-side p95; see Amendment 1), `config/golden_live.json`.
 
 ## 1. Hypotheses
 
@@ -57,3 +57,17 @@
 
 - Training stops at 200 episodes (no early stopping on evaluation metrics). The CLAUDE.md / PLAN.md kill criteria (α divergence, FRR > 10 %, Q-gap growth) may abort a run; an aborted run is reported, fixed, and restarted from scratch.
 - If wall-clock runs short, the pre-declared cut order applies: edge subset 20 → 10 episodes per policy; then evaluation 50 → 40 per policy.
+
+## 8. Amendments (all before any M4 training run)
+
+### Amendment 1 — 2026-10-10, before M4 (F4 smoke findings)
+
+The M3 F4 smokes showed that F4 could not be cured by any policy, for three stacked reasons found and fixed in order (human-approved, each a documented CONTRACT-CHANGE or approved deviation):
+
+1. **Load generator:** keep-alive Locust users stayed pinned to the frontend pod they first connected to, so scaled-out replicas received no load (0.00 cores). Locust now opens one connection per request (`4db5dab`).
+2. **productcatalogservice** (max 1 replica) then saturated at 200m: limit raised to 500m (`2d1f678`).
+3. **currencyservice** then saturated at 300m: limit raised to 500m (`a675b86`).
+
+Re-calibration (`f5e4acb`): **U_base 30, rps_base 33.65, L_SLA 60 ms**, G6 CV 0.215 (passes the 0.25 design gate) with 0 breaches. At this state, F4 at 3.0× and at 2.5× recovers after SCALE_UP frontend (MTTR 80 s each), and F2 with one stress worker remains detectable on both targets (peaks 77 ms and 71 ms vs 60 ms).
+
+Unchanged: hypotheses, policies, schedule design, metrics, statistics, exclusions, stopping rules. Consequences for reporting: client-side p99 now includes one TCP handshake per request; the M3 runbook validation runs as stage 0 of `scripts/chain_m4.sh` before warm-start collection, and training starts only after gates G1–G7 pass or a human has reviewed them.
