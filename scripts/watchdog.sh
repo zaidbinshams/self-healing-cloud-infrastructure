@@ -3,16 +3,19 @@
 #   nohup bash scripts/watchdog.sh python -m agents.run_policy ... > data/logs/<run>.log 2>&1 &
 # The wrapped command must be resumable (run_policy resumes from its episodes.jsonl). Exit 0 ends the
 # watch. Any other exit (e.g. 3 = EnvironmentDegraded during a hotspot outage) waits RETRY_WAIT_S and
-# restarts; after MAX_FAILS consecutive failures it writes data/logs/ALERT and stops.
+# restarts; after MAX_FAILS consecutive failures (a run of >= PROGRESS_S before failing restarts the count) it
+# writes data/logs/ALERT and stops.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
 MAX_FAILS="${MAX_FAILS:-3}"
 RETRY_WAIT_S="${RETRY_WAIT_S:-120}"
+PROGRESS_S="${PROGRESS_S:-900}"      # a child that ran this long before failing made progress: new count
 fails=0
 child=0
 trap 'echo "watchdog: signal received, forwarding to child $child"; [ "$child" -gt 0 ] && kill -TERM "$child"; wait "$child"; exit 0' TERM INT
 while true; do
   echo "watchdog: $(date -Is) start (consecutive failures so far: $fails): $*"
+  t_start=$SECONDS
   "$@" &
   child=$!
   wait "$child"; rc=$?
@@ -20,7 +23,7 @@ while true; do
   if [ "$rc" -eq 0 ]; then
     echo "watchdog: $(date -Is) command finished (exit 0)"; exit 0
   fi
-  fails=$((fails + 1))
+  if [ $((SECONDS - t_start)) -ge "$PROGRESS_S" ]; then fails=1; else fails=$((fails + 1)); fi
   echo "watchdog: $(date -Is) exit $rc (failure $fails/$MAX_FAILS)"
   if [ "$fails" -ge "$MAX_FAILS" ]; then
     mkdir -p data/logs
