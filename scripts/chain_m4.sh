@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # [B] M4 pipeline, unattended (docs/PLAN_OF_ACTION.md §4; docs/PREREGISTRATION.md §2). Mutates the cluster.
+#   0. M3 runbook validation: runbook, ε = 0, VALIDATION_EPISODES episodes, then gates G1–G7
+#      (scripts/gates.py; report in data/m3/runbook_eval/gates.txt). Failing gates do NOT stop the
+#      warm-start collection (useful data either way) but DO stop the chain before training, unless a
+#      human has reviewed them and reruns with GATES_REVIEWED=1.
 #   1. warm-start collection: runbook, ε = runbook.warmstart_epsilon, runbook.warmstart_episodes episodes
 #   2. sac_per_s0:      PER-SAC, warm start from (1), seed 0, 200 episodes
 #   3. sac_per_cold_s0: PER-SAC, cold start, seed 0, 200 episodes
@@ -20,6 +24,8 @@ set -a; source config/cluster.env; set +a
 EPISODES=200
 SEED=0
 WARM_RUN=warmstart_runbook
+VALIDATION_EPISODES=20
+VAL_OUT=data/m3/runbook_eval
 read -r WARM_EPS WARM_N < <(python -c 'from env.contract import load_contract as l; r=l().runbook; print(r.warmstart_epsilon, r.warmstart_episodes)')
 
 stage() {   # stage <name> <killed-marker or -> <command...>
@@ -32,8 +38,17 @@ stage() {   # stage <name> <killed-marker or -> <command...>
   if [[ "$killed" != "-" && -f "$killed" ]]; then echo "=== $name KILLED: $(cat "$killed")"; exit 1; fi
 }
 
+stage validation - python -m agents.run_policy --policy runbook --episodes "$VALIDATION_EPISODES" --epsilon 0 \
+  --seed "$SEED" --out "$VAL_OUT"
+python -m scripts.gates --run "$VAL_OUT" > "$VAL_OUT/gates.txt" 2>&1; gates_rc=$?
+echo "=== $(date -Is) gates exit $gates_rc"; cat "$VAL_OUT/gates.txt"
+
 stage warmstart - python -m agents.run_policy --policy runbook --episodes "$WARM_N" --epsilon "$WARM_EPS" \
   --seed "$SEED" --out "data/m4/$WARM_RUN"
+if [[ $gates_rc -ne 0 && "${GATES_REVIEWED:-0}" != "1" ]]; then
+  echo "=== $(date -Is) gates failed: stopping before training; review $VAL_OUT/gates.txt, then rerun with GATES_REVIEWED=1"
+  exit 1
+fi
 stage sac_per_s0 data/m4/sac_per_s0/KILLED python -m agents.train --run sac_per_s0 --episodes "$EPISODES" \
   --seed "$SEED" --warmstart "data/transitions/$WARM_RUN"
 stage sac_per_cold_s0 data/m4/sac_per_cold_s0/KILLED python -m agents.train --run sac_per_cold_s0 \
