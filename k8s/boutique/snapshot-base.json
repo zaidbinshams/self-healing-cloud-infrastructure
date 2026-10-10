@@ -1,7 +1,7 @@
 {
-  "captured_at": 1791523839.762488,
-  "captured_at_iso": "2026-10-09T05:30:39.762488+00:00",
-  "contract_sha256": "a2eef9c911fefed1d5c5ed7669f357a4ceeb864d49f73c3f0d4b4643550a0977",
+  "captured_at": 1791618388.136496,
+  "captured_at_iso": "2026-10-10T07:46:28.136496+00:00",
+  "contract_sha256": "c0c3eb54f607cb927ac9067fc48310eff7623c7f7350cddc783c2b6b0a395747",
   "deployments": {
     "adservice": {
       "replicas": 1,
@@ -719,7 +719,7 @@
     },
     "productcatalogservice": {
       "limits": {
-        "cpu_cores": 0.2,
+        "cpu_cores": 0.5,
         "memory_bytes": 134217728
       },
       "replicas": 1,
@@ -773,7 +773,7 @@
               },
               "resources": {
                 "limits": {
-                  "cpu": "200m",
+                  "cpu": "500m",
                   "memory": "128Mi"
                 },
                 "requests": {
@@ -809,7 +809,7 @@
           "terminationGracePeriodSeconds": 5
         }
       },
-      "template_hash": "6445dcab32cde2775b7ecb9519f3d2c7cc72efb9a18e8739c5f211d4ea3c4f6b"
+      "template_hash": "64216902e37f581f16005d4d34dfd809d9a2f5308619944c0265f6cbe68099e3"
     },
     "recommendationservice": {
       "replicas": 1,
@@ -1084,8 +1084,8 @@
       "template_hash": "b156feecc3120f026adb8b671a2cb0ba9cee1159d2f0e4047cccda764b0ee0a3"
     }
   },
-  "git_sha": "106f8427f96870b1289d458a0279403da0f62a50",
-  "golden_yaml_sha256": "a90f997e50f0ab73529354437e501e9d75b935576b1a5731680fb1cb3c3055b1",
+  "git_sha": "eca5a51ae631bc0105f07d5e6006b791d2bf85c8",
+  "golden_yaml_sha256": "5054ba9d1b811419bce335c98cca73fa25cf8b0406f4716cc5b7c32045959656",
   "managed": [
     "frontend",
     "cartservice",
