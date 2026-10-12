@@ -32,6 +32,11 @@ rules:
   - apiGroups: ["chaos-mesh.org"]
     resources: ["stresschaos"]
     verbs: ["create", "get", "list", "delete"]
+  # k8s_hpa evaluation baseline only (human-approved 2026-10-13): reset() deletes these in every
+  # reset and creates them from k8s/hpa/hpa-baseline.yaml only for k8s_hpa episodes.
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["create", "get", "list", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

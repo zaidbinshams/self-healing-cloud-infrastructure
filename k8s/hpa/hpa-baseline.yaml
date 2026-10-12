@@ -1,0 +1,65 @@
+# k8s_hpa evaluation baseline ONLY (CLAUDE.md §3). Applied around k8s_hpa episodes by the evaluation
+# orchestrator and deleted afterwards; never present during training or other policies' episodes.
+# Target: AverageValue = 60 % of each pod's CPU LIMIT (the top of the calibrated steady band,
+# contract calibration.frontend_util_band). Requests (100 m) are far below limits, so a request-relative
+# Utilization target would hold HPA at max replicas in steady state. min/max = contract replicas
+# base/max; productcatalogservice (max 1) has no HPA. Generated from contract + golden limits (2026-10-13).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-baseline
+  namespace: boutique
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: AverageValue
+        averageValue: 240m
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cartservice-baseline
+  namespace: boutique
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cartservice
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: AverageValue
+        averageValue: 180m
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: currencyservice-baseline
+  namespace: boutique
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: currencyservice
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: AverageValue
+        averageValue: 300m

@@ -164,3 +164,17 @@ def test_latest_pod_change_ignores_future_clock_jump_stamps():
     assert latest_pod_change([now + 1.0], now) == (now + 1.0, 0)          # small skew is kept
     assert latest_pod_change([now + SETTLE_AFTER_POD_CHANGE_S + 1], now) == (None, 1)
     assert latest_pod_change([], now) == (None, 0)
+
+
+def test_hpa_baseline_manifest_respects_contract_bounds():
+    from env.boutique_env import hpa_docs
+    from env.contract import load_contract
+    c = load_contract()
+    docs = hpa_docs()
+    names = {d["spec"]["scaleTargetRef"]["name"] for d in docs}
+    assert names == {"frontend", "cartservice", "currencyservice"}          # productcatalogservice max 1: none
+    for d in docs:
+        dep = d["spec"]["scaleTargetRef"]["name"]
+        assert d["metadata"]["namespace"] == c.cluster.namespace
+        assert d["spec"]["minReplicas"] == c.replicas.base[dep]
+        assert d["spec"]["maxReplicas"] == c.replicas.max[dep]                # never past the contract bound

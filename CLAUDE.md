@@ -68,7 +68,7 @@ The other services run but are outside the agent's state and action space.
 |---|---|---|
 | `config/kube/admin.kubeconfig` | Humans and bootstrap scripts **only** | Full cluster |
 | `config/kube/agent.kubeconfig` | `env/k8s_actions.py` executor and telemetry reads | `boutique`: deployments get/list/watch/patch, deployments/scale get/patch, pods get/list/watch, pods/log get (server-side latency, 2026-10-09) |
-| `config/kube/controller.kubeconfig` | `env/injector.py` and `reset()` | `boutique`: deployments + scale get/list/patch; pods get/list/delete; `stresschaos.chaos-mesh.org` create/get/list/delete |
+| `config/kube/controller.kubeconfig` | `env/injector.py` and `reset()` | `boutique`: deployments + scale get/list/patch; pods get/list/delete; `stresschaos.chaos-mesh.org` create/get/list/delete; `horizontalpodautoscalers.autoscaling` create/get/list/delete (k8s_hpa baseline only, 2026-10-13) |
 
 **GPU.** There is no GPU anywhere in this project. Torch is the CPU build on B.
 
@@ -215,7 +215,7 @@ These threshold overrides, cluster-tuning changes, the measurement-point change 
    - Env and agent code may only modify the four managed deployments in namespace `boutique`, through the twelve catalog actions.
    - **No new actions.**
    - No other namespaces.
-   - No other resource kinds.
+   - No other resource kinds. **One approved exception (2026-10-13):** `reset()` deletes every HorizontalPodAutoscaler in `boutique` in every reset, and creates the objects in `k8s/hpa/hpa-baseline.yaml` only when `eval/run_eval.py` runs a `k8s_hpa` episode (`reset(options={"hpa_baseline": True})`). The agent and the runbook never touch HPAs. HPA target: `AverageValue` = 60 % of each pod's CPU limit (top of the calibrated steady band); min = base, max = contract max; none for productcatalogservice.
 2. **Replica bounds are enforced twice.** Both the mask and the executor enforce `max_replicas`:
    - frontend 3,
    - cartservice 2,

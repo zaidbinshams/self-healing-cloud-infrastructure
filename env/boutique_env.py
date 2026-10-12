@@ -62,6 +62,7 @@ RESET_DEADLINE_S = 180.0
 SETTLE_AFTER_POD_CHANGE_S = 30.0
 PROM_PING_QUERY = "vector(1)"
 RESET_RESTORE_ID = -1          # reset() RESTOREs are not catalog actions and never reach the agent
+HPA_MANIFEST = REPO_ROOT / "k8s" / "hpa" / "hpa-baseline.yaml"   # k8s_hpa evaluation baseline only
 TRANSITIONS_ROOT = REPO_ROOT / "data" / "transitions"
 
 
@@ -75,6 +76,13 @@ def latest_pod_change(times_s: list[float], now_s: float) -> tuple[float | None,
     """
     valid = [t for t in times_s if t <= now_s + SETTLE_AFTER_POD_CHANGE_S]
     return (max(valid) if valid else None), len(times_s) - len(valid)
+
+
+def hpa_docs(path: Path = HPA_MANIFEST) -> list[dict[str, Any]]:
+    """The HPA baseline objects (k8s_hpa evaluation only), parsed from the committed manifest. Pure."""
+    import yaml
+
+    return [d for d in yaml.safe_load_all(path.read_text()) if d and d.get("kind") == "HorizontalPodAutoscaler"]
 
 
 class EnvironmentDegraded(RuntimeError):
@@ -126,6 +134,8 @@ class BoutiqueEnv(gym.Env):
         self.injector = Injector(contract, controller_api, locust_url, calibration.u_base, run, events)
         self.ctrl_apps = client.AppsV1Api(controller_api)
         self.ctrl_core = client.CoreV1Api(controller_api)
+        self.ctrl_autoscaling = client.AutoscalingV2Api(controller_api)
+        self.supports_hpa_baseline = True   # reset(options={"hpa_baseline": True}) (eval/run_eval.py)
         self.prom_url, self.locust_url = prom_url, locust_url
         self.rng = random.Random(seed)
         self.dispatch_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="dispatch")
@@ -145,9 +155,14 @@ class BoutiqueEnv(gym.Env):
         if self.recorder is not None:
             self.recorder.close()
         t0 = time.monotonic()
-        # 1. remove faults
+        # 1. remove faults, and any HPA baseline object left by a k8s_hpa episode (never in other episodes)
         if not self.injector.remove_all_faults():
             self.events.emit("reset_faults_not_cleared", component="env", tick=None)
+        hpa_end = time.monotonic() + RESET_DEADLINE_S
+        while not self._remove_hpas():
+            if time.monotonic() >= hpa_end:
+                raise EnvironmentDegraded("HPA baseline objects could not be removed")
+            time.sleep(RESET_POLL_S)
         # 2. restore golden (template + base replicas) for all four managed deployments. These are
         #    reset-only RESTOREs (id -1): the catalog has no RESTORE frontend for the agent.
         for d in self.c.cluster.managed:
@@ -164,6 +179,8 @@ class BoutiqueEnv(gym.Env):
         # 5. settle: >= 30 s after the last pod change, then 3 consecutive healthy ticks
         self._wait_pods_settled()
         last_raw, last_features = self._settle_healthy_ticks()
+        if (options or {}).get("hpa_baseline") and not self._create_hpas():
+            raise EnvironmentDegraded("HPA baseline objects could not be created (k8s_hpa episode)")
         # 6. start the episode
         self.episode_count += 1
         plan = (options or {}).get("plan") or self.schedule_plan
@@ -181,6 +198,38 @@ class BoutiqueEnv(gym.Env):
         info = {"episode": self.episode_count, "reset_s": time.monotonic() - t0, **self._truth()}
         self.events.emit("reset_done", component="env", tick=0, **info)
         return {"obs": obs, "mask": self.ep.mask.copy()}, info
+
+    def _remove_hpas(self) -> bool:
+        """Delete every HPA in the namespace; True once none remain (typed failure → False, logged)."""
+        ns, timeout = self.c.cluster.namespace, self.c.telemetry.k8s_timeout_s
+        try:
+            items = self.ctrl_autoscaling.list_namespaced_horizontal_pod_autoscaler(ns, _request_timeout=timeout).items
+            for h in items:
+                self.ctrl_autoscaling.delete_namespaced_horizontal_pod_autoscaler(h.metadata.name, ns,
+                                                                                  _request_timeout=timeout)
+                self.events.emit("hpa_deleted", component="env", tick=None, name=h.metadata.name)
+            return not items or not self.ctrl_autoscaling.list_namespaced_horizontal_pod_autoscaler(
+                ns, _request_timeout=timeout).items
+        except ApiException as exc:
+            self.events.emit("hpa_remove_failed", component="env", error_type=f"ApiException:{exc.status}", tick=None)
+        except urllib3.exceptions.HTTPError as exc:
+            self.events.emit("hpa_remove_failed", component="env", error_type=type(exc).__name__, tick=None)
+        return False
+
+    def _create_hpas(self) -> bool:
+        ns, timeout = self.c.cluster.namespace, self.c.telemetry.k8s_timeout_s
+        try:
+            for doc in hpa_docs():
+                self.ctrl_autoscaling.create_namespaced_horizontal_pod_autoscaler(ns, doc, _request_timeout=timeout)
+                self.events.emit("hpa_created", component="env", tick=None, name=doc["metadata"]["name"])
+            return True
+        except ApiException as exc:
+            self.events.emit("hpa_create_failed", component="env", error_type=f"ApiException:{exc.status}", tick=None)
+        except urllib3.exceptions.HTTPError as exc:
+            self.events.emit("hpa_create_failed", component="env", error_type=type(exc).__name__, tick=None)
+        except (OSError, ValueError) as exc:
+            self.events.emit("hpa_create_failed", component="env", error_type=type(exc).__name__, tick=None)
+        return False
 
     def _list_all_deployments(self) -> list[Any] | None:
         try:
