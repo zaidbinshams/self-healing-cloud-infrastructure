@@ -40,3 +40,14 @@ def test_analysis_structure_and_obvious_directions():
     assert res["H3"]["train_return_1_100"]["cliffs_delta"] == -1.0      # warm start: higher return
     assert res["H4"]["eval_null_episodes"] == 6 and res["H4"]["eval_null_with_action"] == 0
     assert res["km"]["logrank_vs_sac_per"]["k8s_default"] < 0.05
+
+
+def test_plots_render_from_hand_written_rows(tmp_path):
+    import json
+
+    from eval.plots import fig_km, fig_mttr_by_fault, fig_training
+    res = analyze(rows(), [], {})
+    fig_km(json.loads(json.dumps(res, default=float)), tmp_path, 360.0)
+    fig_mttr_by_fault(final_valid(rows())[0], tmp_path, 360.0)
+    fig_training({"sac_per": [{"return": -float(i % 7)} for i in range(30)]}, tmp_path)
+    assert {p.name for p in tmp_path.glob("*.pdf")} == {"a1_km.pdf", "a2_mttr_by_fault.pdf", "a3_training.pdf"}
