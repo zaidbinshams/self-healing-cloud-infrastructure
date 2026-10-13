@@ -197,4 +197,13 @@ Runbook validation (20 episodes, ε = 0, `data/m3/runbook_eval`, gates in `gates
 - recommendationservice (unmanaged) had liveness-probe restarts overnight (health RPC > 1 s, exit 137), most likely under F4 surges. This is real cluster behaviour outside the agent's scope; it is noted, not acted on.
 - Network outages on 13 Oct: 02:24–02:40 and 04:35–04:52 (both resumed without lost episodes), plus frequent short internet-only blips that did not affect the A–B link.
 
+### Warm-start collection outcome (2026-10-13)
+
+`data/m4/warmstart_runbook`: 120 episodes (runbook, ε = 0.25), 100 fault + 20 NULL; median p95 decision latency 0.43 s; 31 stale ticks in total (outages 02:24 and 04:35 plus blips). **95 of 97 valid fault episodes recovered.** All five non-recoveries were explained from the transitions:
+- **Ep 8 (F2):** cut by the 04:35 hotspot outage (stale, invalid).
+- **Eps 48 and 114 (F2):** a random lead-in action left the target with ≠ 1 pod (scale-up, or mid-restart). The F2 injector requires exactly one running pod, so it correctly refused, and the episode is invalid.
+- **Eps 86 and 93 (F1 1 s):** a random RESTART of productcatalogservice *after* injection made its most recent generation change "runbook-caused". Rule R2 (restore a change the runbook did not cause) therefore never fired; the runbook logged unknown_incident until truncation. This is not severity-specific (F1 at 300 ms/600 ms: 11/11; 1 s: 2/4 in warm-start).
+
+Implications: the ε = 0 evaluation is unaffected (validation F1 5/5). For Paper A's discussion, rule-based remediation depends on change attribution, which concurrent changes defeat. For training, SAC's own lead-in exploration can invalidate F2 episodes the same way (~2 %); this is logged, not acted on.
+
 *(Append the M3 summary here when its exit gate passes.)*
