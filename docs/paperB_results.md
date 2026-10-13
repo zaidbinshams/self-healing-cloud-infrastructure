@@ -116,7 +116,30 @@ After the fixes, F4 ×3.0 and ×2.5 recover in 80 s after SCALE_UP frontend.
 | `figures/paperB/b3_estimator_noise.pdf` | sampling CV vs k, log-log | p90/p95/p99 over 5–60 s windows; fit 0.24·k^−0.41; grid line at 10 % |
 | `figures/paperB/b4_detectability.pdf` | fault peak / threshold | thresholds from the same calibration rule; line at 1 |
 
-## Still to add (no extra cluster time)
+## R6. Decision impact on the runbook (A7)
 
-- **Runbook decisions under each signal** (needs the M3 validation episodes, running now): on NULL and lead-in ticks, how often each signal would trigger the runbook's not-H(2) condition.
+- **Data:** the M3 runbook validation (20 episodes, ε = 0) and the warm-start collection (120 episodes, ε = 0.25), 13 Oct, at the final cluster state.
+- **Thresholds:** each signal's threshold comes from the same calibration rule on the final calibration run: server p95 70 ms, client p99 800 ms.
+
+**False triggers on fault-free ticks:**
+- The ticks used are those from NULL episodes and from lead-ins, cut at the first action so the state is unperturbed: 421 ticks.
+- Server p95 is over threshold on 6 ticks (1.4 %); client p99 on 17 (4.0 %), about 3× as often.
+- Neither produced two consecutive breaches, so neither would have falsely triggered the runbook (its not-H(2) condition) in these data.
+
+**Detection within each fault's first two ticks** (before the runbook can act). The full health rule is latency over threshold OR failure ratio > 1 %:
+
+| Fault (episodes) | server p95 | client p99 | note |
+|---|---|---|---|
+| F1 bad deploy (24) | 24/24 | 24/24 | +0.3–1 s latency, visible to both |
+| F2 CPU stress (29) | **27/29** | **3/29** | latency-only fault |
+| F3 scale-to-zero (33) | 33/33 | 33/33 | detected through the shared failure ratio (latency alone: server 0/33, client 13/33) |
+| F4 traffic surge (29) | **29/29** | **5/29** | latency-only fault |
+
+**Takeaway (facts):** with each signal calibrated by the same rule, a client-side-fed controller would miss most latency-only faults (F2, F4) in their first two ticks, while seeing about 3× more isolated false breaches. Faults that cause errors (F3) or very large latency (F1) are caught either way.
+
+**Caveat:** detection is measured on the first two fault ticks only. In these runs the runbook acted on the server signal; the client numbers are what the same ticks would have shown.
+
+## Still to add
+
+- **Related work and venue fit (SEAMS):** to be discussed with the authors.
 - **Related work and venue fit (SEAMS):** to be discussed with the authors.

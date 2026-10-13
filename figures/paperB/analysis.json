@@ -486,5 +486,103 @@
    "timeouts_per_100_ticks": 0.0,
    "stale_share": 0.011111111111111112
   }
- ]
+ ],
+ "A7_runbook_view": {
+  "thresholds_ms": {
+   "server p95": 70.0,
+   "client p99": 800.0
+  },
+  "fault_free": {
+   "server p95": {
+    "ticks": 421,
+    "over_threshold": 6,
+    "share": 0.014251781472684086,
+    "consecutive_pairs": 0,
+    "pairs_per_hour": 0.0
+   },
+   "client p99": {
+    "ticks": 421,
+    "over_threshold": 17,
+    "share": 0.040380047505938245,
+    "consecutive_pairs": 0,
+    "pairs_per_hour": 0.0
+   }
+  },
+  "detected_within_2_ticks": {
+   "server p95": {
+    "F1": {
+     "detected": 24,
+     "episodes": 24
+    },
+    "F2": {
+     "detected": 27,
+     "episodes": 29
+    },
+    "F3": {
+     "detected": 0,
+     "episodes": 33
+    },
+    "F4": {
+     "detected": 28,
+     "episodes": 29
+    }
+   },
+   "client p99": {
+    "F1": {
+     "detected": 24,
+     "episodes": 24
+    },
+    "F2": {
+     "detected": 2,
+     "episodes": 29
+    },
+    "F3": {
+     "detected": 13,
+     "episodes": 33
+    },
+    "F4": {
+     "detected": 2,
+     "episodes": 29
+    }
+   }
+  },
+  "detected_within_2_ticks_full_health": {
+   "server p95": {
+    "F1": {
+     "detected": 24,
+     "episodes": 24
+    },
+    "F2": {
+     "detected": 27,
+     "episodes": 29
+    },
+    "F3": {
+     "detected": 33,
+     "episodes": 33
+    },
+    "F4": {
+     "detected": 29,
+     "episodes": 29
+    }
+   },
+   "client p99": {
+    "F1": {
+     "detected": 24,
+     "episodes": 24
+    },
+    "F2": {
+     "detected": 3,
+     "episodes": 29
+    },
+    "F3": {
+     "detected": 33,
+     "episodes": 33
+    },
+    "F4": {
+     "detected": 5,
+     "episodes": 29
+    }
+   }
+  }
+ }
 }

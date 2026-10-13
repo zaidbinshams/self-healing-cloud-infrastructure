@@ -13,6 +13,10 @@ Every number comes from data recorded on the real testbed (data/); nothing is si
                      and consecutive-breach pairs (the runbook's not-H(2) trigger) per hour
   A5 detectability   fault smokes at the final cluster state: peak signal / threshold before the remedy
   A6 transport       Prometheus ConnectTimeouts per tick before/after the keep-alive session
+  A7 runbook view    on the M3 runbook validation (ε = 0) and the warm-start runs: per signal (server p95 vs
+                     L_SLA; client p99 vs its own threshold from the same calibration rule) the share of
+                     fault-free ticks over threshold and of the runbook's not-H(2) trigger (two consecutive),
+                     and detection within each fault's first two ticks (before the runbook could act)
 
 Usage:  python -m eval.paperb_analysis [--out data/paperB/analysis.json]
 """
@@ -29,7 +33,7 @@ from typing import Any
 
 import numpy as np
 
-from env.contract import REPO_ROOT
+from env.contract import REPO_ROOT, load_contract
 from env.telemetry import _nearest_rank
 
 DATA = REPO_ROOT / "data"
@@ -238,13 +242,71 @@ def a6_transport() -> list[dict[str, Any]]:
     return out
 
 
+# ----------------------------------------------------------------------------- A7
+
+A7_RUNS = ["transitions/runbook_eval", "transitions/warmstart_runbook"]
+A7_DETECT_TICKS = 2                     # the runbook's not-H(2): it cannot act before two unhealthy ticks
+NOOP_ACTION = 0
+
+
+def fault_free_ticks(ticks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Ticks with no fault active and no action taken earlier in the episode (state unperturbed). Pure."""
+    out = []
+    for t in sorted(ticks, key=lambda r: r["tick"]):
+        if t["fault"] != "NULL" and t["phase"] != "lead_in":
+            break
+        out.append(t)
+        if int(t["a_exec"]) != NOOP_ACTION:
+            break                         # the action affects the next tick's state
+    return out
+
+
+def a7_runbook_view() -> dict[str, Any]:
+    cal = [r for r in read_jsonl(DATA / FINAL_CALIBRATION) if not r["stale"]]
+    thr = {"server p95": calibrate_threshold([r["latency_ms"] for r in cal]),
+           "client p99": calibrate_threshold([r["client_p99_ms"] for r in cal])}
+    get = {"server p95": lambda t: t["raw"]["features"]["latency_ms"], "client p99": lambda t: t["raw"]["locust"]["p99_ms"]}
+    free: list[list[dict[str, Any]]] = []
+    detect: dict[str, dict[str, list[bool]]] = {s: {} for s in thr}
+    detect_h: dict[str, dict[str, list[bool]]] = {s: {} for s in thr}     # full health: latency OR failures
+    e_sla = load_contract().sla.e_sla
+    for rel in A7_RUNS:
+        for f in sorted((DATA / rel).glob("episode_*.jsonl")):
+            ticks = [t for t in read_jsonl(f) if not t["stale"] and t.get("source") != "probe"]
+            if not ticks:
+                continue
+            free.append(fault_free_ticks(ticks))
+            fault = ticks[0]["fault"]
+            first = sorted((t for t in ticks if t["phase"] == "fault"), key=lambda r: r["tick"])[:A7_DETECT_TICKS]
+            if fault != "NULL" and len(first) == A7_DETECT_TICKS:
+                for sig, g in get.items():
+                    detect[sig].setdefault(fault, []).append(any(g(t) > thr[sig] for t in first))
+                    detect_h[sig].setdefault(fault, []).append(
+                        any(g(t) > thr[sig] or t["raw"]["features"]["fail_ratio"] > e_sla for t in first))
+    out: dict[str, Any] = {"thresholds_ms": thr, "fault_free": {}, "detected_within_2_ticks": {},
+                           "detected_within_2_ticks_full_health": {}}
+    n_ticks = sum(len(ep) for ep in free)
+    for sig, g in get.items():
+        over = sum(1 for ep in free for t in ep if g(t) > thr[sig])
+        pairs = sum(1 for ep in free for a, b in itertools.pairwise(ep) if g(a) > thr[sig] and g(b) > thr[sig])
+        out["fault_free"][sig] = {"ticks": n_ticks, "over_threshold": over, "share": over / n_ticks if n_ticks else None,
+                                  "consecutive_pairs": pairs,
+                                  "pairs_per_hour": pairs / (n_ticks * TICK_S / 3600) if n_ticks else None}
+        out["detected_within_2_ticks"][sig] = {f: {"detected": sum(v), "episodes": len(v)}
+                                               for f, v in sorted(detect[sig].items())}
+        out["detected_within_2_ticks_full_health"][sig] = {f: {"detected": sum(v), "episodes": len(v)}
+                                                           for f, v in sorted(detect_h[sig].items())}
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, default=DATA / "paperB" / "analysis.json")
     args = ap.parse_args(argv)
     result = {"A1_decomposition": a1_decomposition(), "A2_stalls": a2_stalls(),
               "A3_estimator_noise": a3_estimator_noise(), "A4_false_alarms": a4_false_alarms(),
-              "A5_detectability": a5_detectability(), "A6_transport": a6_transport()}
+              "A5_detectability": a5_detectability(), "A6_transport": a6_transport(),
+              "A7_runbook_view": a7_runbook_view()}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=1))
     print(f"wrote {args.out}")
