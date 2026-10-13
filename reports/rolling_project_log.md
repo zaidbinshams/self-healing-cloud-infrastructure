@@ -180,4 +180,21 @@ M3 builds the **real-cluster Gymnasium environment** and proves it end-to-end wi
 - **SAC + PER** (in-house, approved; 3a23f2d). Dry run (warm start from the smoke transitions, plumbing only): the offline phase (2000 steps, 8.7 s), probes, training updates (4 per tick), checkpoints and resume with buffer rebuild (stale s′ dropped, probe steps skipped) all worked.
 - **Pre-registration** committed (ac0e24a) with Amendment 1 (b53e68d) before any training. The runbook validation is stage 0 of `scripts/chain_m4.sh`; training is gated on G1–G7.
 
+### M3 gate review (human-approved 2026-10-13)
+
+Runbook validation (20 episodes, ε = 0, `data/m3/runbook_eval`, gates in `gates.txt`): G1, G2, G3, G4 and G7 PASS; **G5 and G6 FAIL**.
+- **G3:** recovered 18/18 fault episodes (F1 5/5, F2 6/6, F3 2/2, F4 5/5).
+- **G4:** 0 actions in the 2 NULL episodes.
+- **G2:** stale 0.94 % of 212 ticks.
+- **G5** (19/20 resets without a hard reset, needs ≥ 98 %): the only hard reset was at 02:27:51 during the B–A hotspot outage (`data/logs/network.log`: LAN down 02:24–02:40). It failed because the cluster was unreachable. 19/19 otherwise.
+- **G6** (NULL-tick SLA breaches 4.55 % of 22, needs < 2 %): the single breaching tick is episode 3, tick 10 (02:24:33), the moment the link dropped. It was a stale tick (all cluster sources failed); Locust saw 20.5 % timeouts, and the server latency was a normal 24 ms. 0/21 otherwise. G6's CV part (0.239 < 0.30) passes.
+
+**Review decision:** both failures are caused by the documented network outage, not by the system under test. **Thresholds unchanged.** Training may start (`GATES_REVIEWED=1` at the next chain launch), as provided by the pre-registration (training gated on G1–G7 or human review).
+
+**Caveat recorded:** G6's breach share rests on only 2 NULL validation episodes, so one tick moves it by 4.5 points.
+
+**Other observations:**
+- recommendationservice (unmanaged) had liveness-probe restarts overnight (health RPC > 1 s, exit 137), most likely under F4 surges. This is real cluster behaviour outside the agent's scope; it is noted, not acted on.
+- Network outages on 13 Oct: 02:24–02:40 and 04:35–04:52 (both resumed without lost episodes), plus frequent short internet-only blips that did not affect the A–B link.
+
 *(Append the M3 summary here when its exit gate passes.)*
