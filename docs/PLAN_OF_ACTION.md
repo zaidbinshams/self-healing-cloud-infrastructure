@@ -82,7 +82,7 @@
 
 | Venue | Format | Deadline | Use |
 |---|---|---|---|
-| SEAMS 2027 (ICSE, Dublin) | short 4+1 pp, IEEE/ACM proceedings | ~21 Oct 2026 | Paper B |
+| SEAMS 2027 (ICSE, Dublin) | short **6+1 pp**, IEEE template, double-anonymous (verified 13 Oct 2026) | **23 Oct 2026 AoE** | Paper B |
 | ICPE 2027 | research up to 10 pp (ACM); Emerging track TBA | abstract ~9 Nov, paper ~16 Nov | Paper A (needs guide OK on length) |
 | CCGrid 2027 | 10 pp (IEEE) | 1 Dec 2026 | Paper A fallback |
 
