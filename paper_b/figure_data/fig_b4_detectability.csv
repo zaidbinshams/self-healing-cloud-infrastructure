@@ -1,0 +1,9 @@
+smoke,fault,target,severity,signal,threshold_ms,peak_ms,peak_over_threshold,lead_in_max_over_threshold
+F4-20261010T145928,F4,frontend,3.0,server p95,70.0,198.0,2.8286,0.3143
+F4-20261010T145928,F4,frontend,3.0,client p99,800.0,523.4627,0.6543,0.1636
+F4-20261010T150330,F4,frontend,2.5,server p95,70.0,148.0,2.1143,0.4857
+F4-20261010T150330,F4,frontend,2.5,client p99,800.0,308.8174,0.386,6.25
+F2-20261010T150758,F2,cartservice,1,server p95,70.0,77.0,1.1,0.3429
+F2-20261010T150758,F2,cartservice,1,client p99,800.0,213.5798,0.267,0.206
+F2-20261010T151240,F2,currencyservice,1,server p95,70.0,71.0,1.0143,0.3143
+F2-20261010T151240,F2,currencyservice,1,client p99,800.0,569.1255,0.7114,0.2272

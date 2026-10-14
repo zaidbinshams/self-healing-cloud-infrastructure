@@ -1,7 +1,7 @@
 {
  "A1_decomposition": [
   {
-   "run": "baseline (U50, 2026-10-02)",
+   "run": "U50 baseline",
    "ticks": 30,
    "cv_client_p99": 0.4412531715346431,
    "cv_server_p99": 0.47603361328566957,
@@ -13,7 +13,7 @@
    "server_requests_over_500ms": 876
   },
   {
-   "run": "A-host load view (U50)",
+   "run": "U50 repeat (+host metrics)",
    "ticks": 30,
    "cv_client_p99": 0.2925064579986251,
    "cv_server_p99": 0.31008989267799136,
@@ -25,7 +25,7 @@
    "server_requests_over_500ms": 1073
   },
   {
-   "run": "recommendation 500m (U50)",
+   "run": "U50, recommendation 500m",
    "ticks": 30,
    "cv_client_p99": 0.6077574396066754,
    "cv_server_p99": 0.7342146208730086,
@@ -49,7 +49,7 @@
    "server_requests_over_500ms": 595
   },
   {
-   "run": "Treatment A, U40 (2026-10-09)",
+   "run": "U40, runtime fix",
    "ticks": 30,
    "cv_client_p99": 0.5996988280534761,
    "cv_server_p99": 0.1413612756270016,
@@ -61,7 +61,7 @@
    "server_requests_over_500ms": 0
   },
   {
-   "run": "Treatment A + link tuned, U40",
+   "run": "U40, runtime fix + Wi-Fi tuned",
    "ticks": 30,
    "cv_client_p99": 0.35302333532550956,
    "cv_server_p99": 0.18718345382756243,

@@ -1,0 +1,2 @@
+model,a,b,k_for_cv_0.10,k_for_cv_0.15,requests,span_min
+cv = a * k^b over q >= 0.9,0.2352,-0.4063,8.2058,3.0249,37933,15.2563

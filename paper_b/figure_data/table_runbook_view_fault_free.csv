@@ -1,0 +1,3 @@
+signal,threshold_ms,fault_free_ticks,over_threshold,share,consecutive_pairs
+server p95,70.0,421,6,0.0143,0
+client p99,800.0,421,17,0.0404,0

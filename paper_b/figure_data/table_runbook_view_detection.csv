@@ -1,0 +1,9 @@
+fault,signal,detected_latency_only,detected_full_health,episodes
+F1,server p95,24,24,24
+F2,server p95,27,27,29
+F3,server p95,0,33,33
+F4,server p95,28,29,29
+F1,client p99,24,24,24
+F2,client p99,2,3,29
+F3,client p99,13,33,33
+F4,client p99,2,5,29

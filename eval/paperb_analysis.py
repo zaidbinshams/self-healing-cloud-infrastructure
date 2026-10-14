@@ -45,12 +45,12 @@ TICK_S = 20.0
 
 # A1: latency_diag tick runs, in chronological order of the investigation
 DIAG_RUNS = [
-    ("baseline (U50, 2026-10-02)", "diag/latency-baseline.jsonl"),
-    ("A-host load view (U50)", "diag/latency-host.jsonl"),
-    ("recommendation 500m (U50)", "diag/latency-rec500.jsonl"),
+    ("U50 baseline", "diag/latency-baseline.jsonl"),
+    ("U50 repeat (+host metrics)", "diag/latency-host.jsonl"),
+    ("U50, recommendation 500m", "diag/latency-rec500.jsonl"),
     ("U40", "diag/latency-u40.jsonl"),
-    ("Treatment A, U40 (2026-10-09)", "diag/latency-treatA-u40.jsonl"),
-    ("Treatment A + link tuned, U40", "diag/latency-linktuned-u40.jsonl"),
+    ("U40, runtime fix", "diag/latency-treatA-u40.jsonl"),
+    ("U40, runtime fix + Wi-Fi tuned", "diag/latency-linktuned-u40.jsonl"),
 ]
 STALL_RUNS = [("before Treatment A (U40)", "diag/stalls-u40.json"), ("after Treatment A", "diag/stalls-treatA.json")]
 RAW_CAPTURE = "paperB/requests_u30.jsonl"

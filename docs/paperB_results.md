@@ -1,5 +1,7 @@
 # Paper B — Results Pack (facts and numbers, not prose)
 
+> **For the paper team: use `paper_b/` (start at `paper_b/README.md`).** This file is the analysis log the package was built from.
+
 > Source of truth for numbers: `figures/paperB/analysis.json`, produced by `python -m eval.paperb_analysis` from recorded testbed data (nothing simulated). Figures are made by `python -m eval.paperb_figures`. **The authors write all paper text**; this file only lists facts, provenance and caveats. Regenerate both before submission if more data is added.
 
 ## Setting (for the method section)
@@ -19,12 +21,12 @@
 
 | Run (30 ticks × 20 s each) | CV client p99 | CV server p99 | r(client, ping) | r(server, ping) | server requests > 500 ms | median client / server / ping p99 (ms) |
 |---|---|---|---|---|---|---|
-| baseline U50 (2 Oct) | 0.44 | 0.48 | 0.02 | −0.04 | 876 | 682 / 629 / 121 |
-| A-host load view U50 | 0.29 | 0.31 | 0.20 | 0.13 | 1073 | 863 / 758 / 52 |
-| recommendation 500m U50 | 0.61 | 0.73 | 0.37 | 0.30 | 622 | 523 / 432 / 88 |
+| U50 baseline (2 Oct) | 0.44 | 0.48 | 0.02 | −0.04 | 876 | 682 / 629 / 121 |
+| U50 repeat (+host metrics) | 0.29 | 0.31 | 0.20 | 0.13 | 1073 | 863 / 758 / 52 |
+| U50, recommendation 500m | 0.61 | 0.73 | 0.37 | 0.30 | 622 | 523 / 432 / 88 |
 | U40 | 0.63 | 0.67 | 0.30 | 0.27 | 595 | 630 / 536 / 48 |
-| **Treatment A, U40 (9 Oct)** | **0.60** | **0.14** | **0.95** | 0.39 | **0** | 169 / 88 / 84 |
-| Treatment A + link tuned, U40 | 0.35 | 0.19 | 0.87 | 0.17 | 0 | 200 / 147 / 62 |
+| **U40, runtime fix (9 Oct)** | **0.60** | **0.14** | **0.95** | 0.39 | **0** | 169 / 88 / 84 |
+| U40, runtime fix + Wi-Fi tuned | 0.35 | 0.19 | 0.87 | 0.17 | 0 | 200 / 147 / 62 |
 
 **Before the runtime fix:**
 - Both signals were dominated by in-cluster stalls: hundreds of requests over 500 ms per 10 min, and similar CV client- and server-side.

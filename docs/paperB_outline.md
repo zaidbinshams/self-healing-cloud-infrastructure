@@ -1,5 +1,7 @@
 # Paper B — Venue, Outline, Content Points, Related-Work Notes
 
+> **For the paper team: use `paper_b/` (start at `paper_b/README.md`).** This file is the first outline the package was built from.
+
 > Structure and facts only. **The authors write every sentence of the paper** (titles and abstract included). Numbers: `docs/paperB_results.md` and `figures/paperB/analysis.json`. Verify any number against those before using it.
 
 ## 1. Venue: SEAMS 2027 research track, short paper (verified 13 Oct 2026 on the official page)

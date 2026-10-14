@@ -1,0 +1,3 @@
+run,requests,slow_over_500ms,slow_share,span_s,stall_events,events_per_min,event_duration_s_median,events_with_ping_spike
+before Treatment A (U40),16639,448,0.0269,316.9831,37,7.0035,0.8073,0
+after Treatment A,17141,0,0.0,314.8257,0,0.0,,0

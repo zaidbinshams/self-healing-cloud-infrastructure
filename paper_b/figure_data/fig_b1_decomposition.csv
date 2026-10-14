@@ -1,0 +1,7 @@
+run,ticks,cv_client_p99,cv_server_p99,r_client_vs_ping_p99,r_server_vs_ping_p99,median_client_p99_ms,median_server_p99_ms,median_ping_p99_ms,server_requests_over_500ms
+U50 baseline,30,0.4413,0.476,0.0151,-0.0415,682.0524,629.0,121.0,876
+U50 repeat (+host metrics),30,0.2925,0.3101,0.1984,0.1298,863.2706,758.5,51.75,1073
+"U50, recommendation 500m",30,0.6078,0.7342,0.3713,0.3022,522.6198,431.5,87.75,622
+U40,30,0.6268,0.671,0.3037,0.2658,629.9044,535.5,48.15,595
+"U40, runtime fix",30,0.5997,0.1414,0.9537,0.394,169.3128,88.0,83.75,0
+"U40, runtime fix + Wi-Fi tuned",30,0.353,0.1872,0.8705,0.171,200.1298,147.0,61.5,0
