@@ -146,7 +146,7 @@ class RlCfg:
     alpha_init: float
     target_entropy_frac: float
     offline_warmstart_steps: int
-    offline_cql_weight: float              # offline phase only: CQL penalty weight (actor = behaviour cloning)
+    offline_cql_weight: float              # CQL penalty weight: offline phase (Amendment 5) and online updates (Amendment 6)
     torch_threads: int
 
 

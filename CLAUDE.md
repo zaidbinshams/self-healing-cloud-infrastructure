@@ -676,6 +676,7 @@ spec:
    - `loss_α = mean_{s: n_valid(s) ≥ 2}[ exp(log α) · (H(π(·|s)) − H̄(s)).detach() ]`.
    - **States with a single valid action are excluded.**
    - Compute this over the sampled batch and log the fraction of states excluded.
+   - **Online phase (Amendment 6, 2026-10-20):** α is held at `alpha_init` (the α loss is computed and logged, not applied) and the critic loss keeps the CQL penalty with `rl.offline_cql_weight`. Reason: with plain online SAC the critic's extrapolation error drifted the policy to acting in healthy states (attempt 4), and the learned α rose toward its kill limit. See `docs/PREREGISTRATION.md` Amendment 6.
 6. **Priorities.**
    - `p_i = min(mean(|δ₁|, |δ₂|), priority_cap) + eps`.
    - New transitions get the current max priority.

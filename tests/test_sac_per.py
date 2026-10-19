@@ -342,3 +342,39 @@ def test_offline_update_learns_the_data_action_and_ranks_it_first():
     with torch.no_grad():
         q = torch.min(*agent.critic(torch.as_tensor(o).unsqueeze(0)))[0]
     assert int(q.argmax()) == 0 and math.isfinite(stats.critic_loss)
+
+
+def test_online_update_with_cql_keeps_the_data_action_first():
+    """Amendment 6: a SAC update with the CQL penalty keeps the critic on the data's action; cql_weight=0 is the
+    unchanged pre-registered update."""
+    rng = np.random.default_rng(11)
+    buf = ReplayBuffer(512, C.per, seed=0)
+    m = np.ones(N_ACTIONS, np.int8)
+    o = rng.uniform(-1, 1, OBS_DIM).astype(np.float32)
+    for _ in range(256):
+        buf.add(Transition(o, m, 0, -0.05, o, m, False, C.rl.gamma ** C.rl.n_step))
+    agent = MaskedDiscreteSAC(C.rl, C.per, seed=0)
+    for _ in range(300):
+        b = buf.sample(64, 0.4)
+        stats, prio = agent.update(b, cql_weight=1.0)
+        buf.update_priorities(b.idx, prio)
+    with torch.no_grad():
+        q = torch.min(*agent.critic(torch.as_tensor(o).unsqueeze(0)))[0]
+    assert int(q.argmax()) == 0 and math.isfinite(stats.critic_loss)
+    assert np.all(prio >= C.per.eps) and np.all(prio <= C.per.priority_cap + C.per.eps)
+
+
+def test_update_with_learn_alpha_false_keeps_alpha_fixed():
+    """Amendment 6: the online phase holds α at alpha_init; the default update still learns α (§5.12 rule 5)."""
+    rng = np.random.default_rng(3)
+    buf = ReplayBuffer(256, C.per, seed=0)
+    for _ in range(200):
+        buf.add(_transition(rng))
+    fixed, learned = MaskedDiscreteSAC(C.rl, C.per, seed=0), MaskedDiscreteSAC(C.rl, C.per, seed=0)
+    for _ in range(20):
+        b = buf.sample(C.rl.batch_size, 0.4)
+        stats, _ = fixed.update(b, cql_weight=1.0, learn_alpha=False)
+        learned.update(b)
+    assert fixed.alpha.item() == pytest.approx(C.rl.alpha_init)
+    assert learned.alpha.item() != pytest.approx(C.rl.alpha_init)
+    assert math.isfinite(stats.alpha_loss)

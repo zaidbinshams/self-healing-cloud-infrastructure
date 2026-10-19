@@ -108,8 +108,8 @@ def alpha_loss(log_alpha: torch.Tensor, ent: torch.Tensor, mask: torch.Tensor, t
 def cql_penalty(q: torch.Tensor, q_a: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     """Discrete CQL regularizer (Kumar et al., 2020): mean[ logsumexp_{a valid} Q(s,a) − Q(s, a_data) ].
 
-    Pushes down values of actions the data rarely shows (where offline Q overestimates), and up the data's
-    action. Used only in the offline warm-start phase (Amendment 5)."""
+    Pushes down values of actions the data rarely shows (where Q overestimates), and up the data's action.
+    Offline warm start (Amendment 5) and, with the same weight, every online update (Amendment 6)."""
     lse = torch.logsumexp(torch.where(mask, q, torch.full_like(q, MASK_FILL)), dim=-1)
     return (lse - q_a).mean()
 
@@ -166,8 +166,11 @@ class MaskedDiscreteSAC:
         probs, _ = masked_policy(logits, m)
         return int(torch.multinomial(probs[0], 1, generator=self.act_rng).item())
 
-    def update(self, b: Batch) -> tuple[UpdateStats, np.ndarray]:
-        """One gradient step on a sampled batch. Returns stats and the new priorities for b.idx."""
+    def update(self, b: Batch, cql_weight: float = 0.0, learn_alpha: bool = True) -> tuple[UpdateStats, np.ndarray]:
+        """One gradient step on a sampled batch. Returns stats and the new priorities for b.idx.
+
+        Amendment 6 (online phase): cql_weight > 0 adds the CQL penalty to the critic loss, and learn_alpha=False
+        keeps α at its current value (alpha_init; the α loss is still computed and logged). Priorities stay |TD|."""
         obs = torch.as_tensor(b.obs)
         mask = torch.as_tensor(b.mask, dtype=torch.bool)
         act = torch.as_tensor(b.action, dtype=torch.int64).unsqueeze(-1)
@@ -185,6 +188,8 @@ class MaskedDiscreteSAC:
         q1, q2 = self.critic(obs)
         q1_a, q2_a = q1.gather(-1, act).squeeze(-1), q2.gather(-1, act).squeeze(-1)
         c_loss, td1, td2 = critic_loss(q1_a, q2_a, y, weight)
+        if cql_weight > 0.0:
+            c_loss = c_loss + cql_weight * (cql_penalty(q1, q1_a, mask) + cql_penalty(q2, q2_a, mask))
         self._check(c_loss, "critic")
 
         probs, log_probs = masked_policy(self.actor(obs), mask)
@@ -200,9 +205,10 @@ class MaskedDiscreteSAC:
         self.opt_actor.zero_grad()
         a_loss.backward()
         self.opt_actor.step()
-        self.opt_alpha.zero_grad()
-        al_loss.backward()
-        self.opt_alpha.step()
+        if learn_alpha:
+            self.opt_alpha.zero_grad()
+            al_loss.backward()
+            self.opt_alpha.step()
         self._polyak()
         self.grad_step += 1
 
@@ -214,7 +220,7 @@ class MaskedDiscreteSAC:
 
     def offline_update(self, b: Batch, cql_weight: float) -> tuple[UpdateStats, np.ndarray]:
         """Offline warm-start step (Amendment 5): critic = SAC TD loss + cql_weight·CQL penalty; actor = behaviour
-        cloning of the data's actions; α is not updated. The online phase uses `update` unchanged."""
+        cloning of the data's actions; α is not updated. The online phase uses `update` with the same CQL weight and α fixed."""
         obs = torch.as_tensor(b.obs)
         mask = torch.as_tensor(b.mask, dtype=torch.bool)
         act = torch.as_tensor(b.action, dtype=torch.int64)

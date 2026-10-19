@@ -243,7 +243,7 @@ class Trainer:
         n = 0
         while n < rl.updates_per_tick and time.monotonic() - t0 < self.c.clock.update_budget_s:
             b = self.buffer.sample(rl.batch_size, beta_at(self.c.per, self.agent.grad_step))
-            s, prio = self.agent.update(b)
+            s, prio = self.agent.update(b, self.c.rl.offline_cql_weight, learn_alpha=False)   # Amendment 6
             self.buffer.update_priorities(b.idx, prio)
             stats.append(s)
             n += 1

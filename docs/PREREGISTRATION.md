@@ -121,3 +121,30 @@ Prometheus queries now reuse one keep-alive HTTP session (`cdc39a4`; library ret
 
   Weights 0.5 and 2.0 gave similar results; 1.0 was chosen as the default, not tuned on outcomes.
 - Attempt 3 (3 training episodes) is archived. Training restarts from zero; probes at 0/75/150 and all other settings unchanged.
+
+### Amendment 6 — 2026-10-20, online update: CQL penalty and fixed α (attempt 4 aborted)
+
+- **Finding (attempt 4, warm start = Amendment 5, online phase = pre-registered masked SAC + PER).** All valid fault episodes recovered, but the policy drifted toward acting in healthy states before any fault (scale-up / restart / restore of currencyservice on the first tick).
+  - On the clean episode-start state: π(NOOP) went from 0.75 (warm start) to 0.02 after 49 training episodes; the greedy policy chose NOOP on 6 % of 186 recorded start states (warm start: 100 %).
+  - Training return per 10 episodes fell from −1.29 to −2.00; actions per episode rose from 3.5 to 6.2. Every NULL training episode after episode 14 contained actions (false remediations, the FRR > 10 % kill criterion of §7).
+  - The drift also blocked F2 on currencyservice: a pre-scaled target fails the injector's "exactly 1 pod" precondition, so 2 such episodes were invalid.
+  - The critic valued acting above NOOP on the start state (Q(SCALE_UP cur) − Q(NOOP) = +0.80 at episode 14), although realized returns of episodes that began with an action were not better (mean discounted return −1.12 vs −0.75).
+- **Offline diagnosis (no cluster time).** From the attempt-4 warm-start checkpoint, the real recorded transitions (120 runbook episodes + attempt 4) were replayed through the online update for 8000 gradient steps (≈ one full training run), measuring the greedy action on 186 recorded clean start states:
+
+  | Online update | greedy NOOP at start, at 2000 / 4000 / 6000 / 8000 steps | α at 8000 |
+  |---|---|---|
+  | pre-registered (no CQL, α learned) | 0–4 % throughout | 0.26 |
+  | α fixed at 0.1, no CQL | 2 / 3 / 6 / 2 % | 0.10 |
+  | CQL 1.0, α learned | 100 / 61 / 47 / 38 % | 0.92 (kill limit 1.0) |
+  | CQL 0.1 / 0.3 / 0.5, α learned | ≤ 56 % at every point | 0.41–0.76 |
+  | **CQL 1.0, α fixed at 0.1** (seeds 0, 1) | **100 / 100 / 83–86 / 85–88 %** | 0.10 |
+
+  The critic's extrapolation error on actions the data rarely shows in healthy states (the Amendment 5 failure mode) returns online. With α learned, the per-state entropy target (0.4 · ln n_valid ≈ 1 nat in healthy states) drives α up whatever the critic does, which erodes the conservative critic and approaches the α kill limit. The replay is pessimistic for the chosen variant: it contains attempt 4's habit transitions, which a fresh run does not collect. On unhealthy fault states the greedy policy picked the curing action 29–30 % of the time with the chosen variant vs 32 % for the warm start (most such states are after the cure was dispatched, so this is a relative check only).
+- **Change (online phase).**
+  - The critic loss keeps the **CQL penalty** with the existing locked weight `rl.offline_cql_weight` = 1.0 (the key name is historical; no contract value changed).
+  - **α is held at `rl.alpha_init` = 0.1** (no online α update; the α loss is still computed and logged). This is SAC with a fixed temperature (Haarnoja et al., 2018, first version); §5.12 rule 5's α update is not applied in training. The α kill criterion is therefore inert.
+  - Everything else is unchanged: masked discrete SAC actor and critic targets, n-step 3, PER and β schedule, 4 updates per tick, 200 episodes, probes at 0/75/150, seed 0. The cold-start run and the uniform-replay ablation use the same online update, so comparisons stay like-for-like.
+  - Chosen by the pre-declared rule "keeps the greedy policy at NOOP on clean start states and α within its kill range over a full run's worth of replayed updates", using recorded training data only; no evaluation data exists.
+- **Expected cost.** Near-deterministic training policy (entropy ≈ 0.03 nats), so less exploration: the online phase refines the runbook-like warm start rather than exploring widely.
+- **Restart.** Attempt 4 (58 training episodes) is archived under `data/*/_discarded/sac_per_s0_20261019_attempt4_online_drift`. The online phase restarts from the same offline warm-start checkpoint (`warm.pt`: the offline phase is unchanged by this amendment and seeded, so re-running it gives the same network). The episode-0 probe is re-run.
+- **Monitoring (added).** Every 30-minute status check evaluates the current checkpoint's greedy action on the fixed set of recorded clean start states (and fault states); a fall of greedy NOOP below 90 % is reported immediately.
