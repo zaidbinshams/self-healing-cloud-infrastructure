@@ -483,9 +483,14 @@ def check_prom_targets(ctx: Ctx) -> CheckResult:
 
 
 def check_prom_series(ctx: Ctx) -> CheckResult:
-    n = int(_prom_get(ctx, "/api/v1/status/tsdb")["data"]["headStats"]["numSeries"])
-    return CheckResult(f"prometheus head series < {PROM_MAX_SERIES} (keep-list)", 0 < n < PROM_MAX_SERIES,
-                       f"numSeries={n}")
+    """Keep-list check on the series being scraped NOW. The TSDB head also retains, for ~2 h, the series of
+    every pod that existed recently, so pod churn during training (restarts, scale) inflates the head count
+    without any keep-list problem (2026-10-19: head 1729 vs 110 live after a discarded training run)."""
+    res = _prom_get(ctx, "/api/v1/query", {"query": 'count({__name__=~".+"})'})["data"]["result"]
+    n = int(float(res[0]["value"][1])) if res else 0
+    head = int(_prom_get(ctx, "/api/v1/status/tsdb")["data"]["headStats"]["numSeries"])
+    return CheckResult(f"prometheus live series < {PROM_MAX_SERIES} (keep-list)", 0 < n < PROM_MAX_SERIES,
+                       f"live={n} (head incl. recently gone pods={head})")
 
 
 def check_promq(ctx: Ctx) -> CheckResult:
