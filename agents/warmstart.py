@@ -69,14 +69,17 @@ def fill(buffer: ReplayBuffer, transitions: Iterable[Transition]) -> None:
 
 
 def offline_pretrain(agent: MaskedDiscreteSAC, buffer: ReplayBuffer, steps: int, batch_size: int,
-                     per: PerCfg) -> list[UpdateStats]:
-    """The offline phase: `steps` gradient steps on the warm-start buffer (β advances with them)."""
+                     per: PerCfg, cql_weight: float) -> list[UpdateStats]:
+    """The offline phase (Amendment 5): `steps` gradient steps on the warm-start buffer with behaviour cloning
+    of the runbook data for the actor and a CQL-regularized critic (β advances with them). Plain offline SAC
+    overestimated actions the runbook data rarely shows, so its greedy policy acted on 97 % of ticks where
+    the runbook took NOOP on 70 % (2026-10-19)."""
     if len(buffer) < batch_size:
         raise ValueError(f"warm-start buffer has {len(buffer)} transitions < batch size {batch_size}")
     stats = []
     for _ in range(steps):
         b = buffer.sample(batch_size, beta_at(per, agent.grad_step))
-        s, prio = agent.update(b)
+        s, prio = agent.offline_update(b, cql_weight)
         buffer.update_priorities(b.idx, prio)
         stats.append(s)
     return stats

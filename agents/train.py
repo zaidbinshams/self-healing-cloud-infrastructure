@@ -168,7 +168,7 @@ class Trainer:
             fill(self.buffer, ts)
             t0 = time.monotonic()
             stats = offline_pretrain(self.agent, self.buffer, self.c.rl.offline_warmstart_steps,
-                                     self.c.rl.batch_size, self.c.per)
+                                     self.c.rl.batch_size, self.c.per, self.c.rl.offline_cql_weight)
             self.log({"event": "offline_warmstart", **vars(st), "buffer": len(self.buffer),
                       "grad_steps": self.agent.grad_step, "seconds": time.monotonic() - t0,
                       "critic_loss_last100": float(np.mean([s.critic_loss for s in stats[-100:]])),

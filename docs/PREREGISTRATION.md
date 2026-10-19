@@ -96,3 +96,28 @@ Prometheus queries now reuse one keep-alive HTTP session (`cdc39a4`; library ret
 - **Reset settle** (`362e445`): 2 consecutive healthy ticks before an episode starts (was 3), saving ~20 s per episode. The recovery/MTTR definition (3 healthy ticks) is unchanged; every episode also has 2–5 lead-in ticks before any fault.
 - **Training restarts from zero** with the same pre-registered settings: warm start from the same 120 runbook episodes, 200 episodes, probes at 0/75/150, seed 0.
 - **Addendum (same day, before any training episode):** server-read logging (`f6b12c9`) showed the remaining stale ticks after frontend restarts at n = 131–143, just under the 160 needed for 8 tail samples. The threshold was lowered to 5 tail samples (≥ 100 requests, ~12 % sampling CV) and each episode is seeded with the frontend pod set of the last reset tick, so tick-0 churn is recognized (`c3f2b4c`). The calibration was re-stamped again (`f0e51a8`, values unchanged) and the fixture re-recorded. The second attempt had run only greedy probe episodes (no training episodes); it is archived, and training restarts from zero.
+
+### Amendment 5 — 2026-10-19, offline warm-start method (before any reported training)
+
+- **Finding.** The episode-0 greedy probe of attempt 3 (right after the offline phase) recovered 0 of 4 faults and acted in a fault-free episode on every tick. Inspection of the offline-trained agent on the 303 healthy runbook states where the runbook took NOOP:
+  - the critic valued NOOP below actions the data barely contains (e.g. RESTORE currencyservice, seen 4 times);
+  - the policy put 5 % on NOOP and 45 % on that RESTORE.
+
+  This is the known extrapolation error of plain off-policy (SAC) updates on a fixed dataset. The warm-started agent therefore did not start runbook-like, which defeats the purpose of runbook bootstrapping (H3).
+- **Change (offline phase only).**
+  - The actor is trained by **behaviour cloning** (cross-entropy toward the data's actions).
+  - The critic gets a **CQL penalty** (Kumar et al., 2020; weight 1.0, the standard default, new locked parameter `rl.offline_cql_weight`) added to the SAC TD loss.
+  - α is not updated offline.
+  - The **online phase is unchanged** (pre-registered masked SAC + PER), and the cold-start run has no offline phase, so it is unaffected.
+- **Offline validation** (no cluster time; seeds 0 and 1):
+
+  | | Plain offline SAC | BC + CQL (weight 1.0) |
+  |---|---|---|
+  | Greedy policy agrees with the runbook: healthy states | — | 100 % |
+  | Greedy policy agrees with the runbook: all runbook decisions | — | 98 % |
+  | Greedy policy agrees with the runbook: where the runbook acted | — | 84 % |
+  | Critic argmax agrees with the runbook: healthy states | 7 % | 100 % |
+  | Critic argmax agrees with the runbook: where the runbook acted | 16 % | 83–86 % |
+
+  Weights 0.5 and 2.0 gave similar results; 1.0 was chosen as the default, not tuned on outcomes.
+- Attempt 3 (3 training episodes) is archived. Training restarts from zero; probes at 0/75/150 and all other settings unchanged.

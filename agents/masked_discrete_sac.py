@@ -105,6 +105,21 @@ def alpha_loss(log_alpha: torch.Tensor, ent: torch.Tensor, mask: torch.Tensor, t
     return (log_alpha.exp() * (ent[keep] - target).detach()).mean(), excluded
 
 
+def cql_penalty(q: torch.Tensor, q_a: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """Discrete CQL regularizer (Kumar et al., 2020): mean[ logsumexp_{a valid} Q(s,a) − Q(s, a_data) ].
+
+    Pushes down values of actions the data rarely shows (where offline Q overestimates), and up the data's
+    action. Used only in the offline warm-start phase (Amendment 5)."""
+    lse = torch.logsumexp(torch.where(mask, q, torch.full_like(q, MASK_FILL)), dim=-1)
+    return (lse - q_a).mean()
+
+
+def bc_loss(logits: torch.Tensor, mask: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+    """Behaviour cloning: cross-entropy of the masked policy at the data's action."""
+    _, log_probs = masked_policy(logits, mask)
+    return -log_probs.gather(-1, actions.unsqueeze(-1)).squeeze(-1).mean()
+
+
 # ----------------------------------------------------------------------------- agent
 
 @dataclass(frozen=True)
@@ -195,6 +210,46 @@ class MaskedDiscreteSAC:
         stats = UpdateStats(c_loss.item(), a_loss.item(), al_loss.item(), self.alpha.item(), ent.mean().item(),
                             q1_a.detach().mean().item(), (q1_a - q2_a).abs().mean().item(),
                             0.5 * (td1.abs().mean() + td2.abs().mean()).item(), excluded)
+        return stats, prio
+
+    def offline_update(self, b: Batch, cql_weight: float) -> tuple[UpdateStats, np.ndarray]:
+        """Offline warm-start step (Amendment 5): critic = SAC TD loss + cql_weight·CQL penalty; actor = behaviour
+        cloning of the data's actions; α is not updated. The online phase uses `update` unchanged."""
+        obs = torch.as_tensor(b.obs)
+        mask = torch.as_tensor(b.mask, dtype=torch.bool)
+        act = torch.as_tensor(b.action, dtype=torch.int64)
+        ret, done = torch.as_tensor(b.ret), torch.as_tensor(b.done)
+        discount, weight = torch.as_tensor(b.discount), torch.as_tensor(b.weight)
+        next_obs = torch.as_tensor(b.next_obs)
+        next_mask = torch.as_tensor(b.next_mask, dtype=torch.bool)
+        alpha = self.alpha.detach()
+        with torch.no_grad():
+            p_next, lp_next = masked_policy(self.actor(next_obs), next_mask)
+            q1t, q2t = self.critic_target(next_obs)
+            y = td_target(ret, done, discount, soft_value(p_next, lp_next, torch.min(q1t, q2t), next_mask, alpha))
+        q1, q2 = self.critic(obs)
+        q1_a, q2_a = q1.gather(-1, act.unsqueeze(-1)).squeeze(-1), q2.gather(-1, act.unsqueeze(-1)).squeeze(-1)
+        td_loss, td1, td2 = critic_loss(q1_a, q2_a, y, weight)
+        c_loss = td_loss + cql_weight * (cql_penalty(q1, q1_a, mask) + cql_penalty(q2, q2_a, mask))
+        self._check(c_loss, "critic")
+        logits = self.actor(obs)
+        a_loss = bc_loss(logits, mask, act)
+        self._check(a_loss, "actor")
+        self.opt_critic.zero_grad()
+        c_loss.backward()
+        self.opt_critic.step()
+        self.opt_actor.zero_grad()
+        a_loss.backward()
+        self.opt_actor.step()
+        self._polyak()
+        self.grad_step += 1
+        with torch.no_grad():
+            probs, log_probs = masked_policy(logits, mask)
+            ent = entropy(probs, log_probs)
+        prio = priority_from_td(td1.numpy(), td2.numpy(), self.per)
+        stats = UpdateStats(c_loss.item(), a_loss.item(), 0.0, self.alpha.item(), ent.mean().item(),
+                            q1_a.detach().mean().item(), (q1_a - q2_a).abs().mean().item(),
+                            0.5 * (td1.abs().mean() + td2.abs().mean()).item(), 0.0)
         return stats, prio
 
     @staticmethod

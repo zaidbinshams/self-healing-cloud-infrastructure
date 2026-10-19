@@ -303,3 +303,42 @@ def test_q_minus_return_on_a_short_episode():
     g = 0.9
     expected = np.mean([-1 - (-0.5 + g * -0.5), -1 - (-0.5)])
     assert q_minus_return(agent, steps, g) == pytest.approx(expected)
+
+
+# ----------------------------------------------------------------------------- offline warm start (Amendment 5)
+
+def test_cql_penalty_is_zero_when_data_action_dominates_and_positive_otherwise():
+    from agents.masked_discrete_sac import cql_penalty
+    mask = _mask(0, 1).unsqueeze(0)
+    q = torch.full((1, N_ACTIONS), -100.0)
+    q[0, 0], q[0, 1] = 50.0, -50.0
+    assert cql_penalty(q, q[:, 0], mask).item() == pytest.approx(0.0, abs=1e-6)      # data action far above
+    assert cql_penalty(q, q[:, 1], mask).item() == pytest.approx(100.0, rel=1e-6)    # a rarely-taken action
+    q[0, 5] = 1e6                                                                     # masked: must not count
+    assert cql_penalty(q, q[:, 0], mask).item() == pytest.approx(0.0, abs=1e-6)
+
+
+def test_bc_loss_is_low_for_the_data_action():
+    from agents.masked_discrete_sac import bc_loss
+    mask = _mask(0, 3).unsqueeze(0)
+    logits = torch.zeros(1, N_ACTIONS)
+    logits[0, 0] = 10.0
+    assert bc_loss(logits, mask, torch.tensor([0])).item() < 1e-3
+    assert bc_loss(logits, mask, torch.tensor([3])).item() > 9.0
+
+
+def test_offline_update_learns_the_data_action_and_ranks_it_first():
+    """Behaviour cloning + CQL on a tiny dataset: greedy policy and critic both prefer the data's action."""
+    rng = np.random.default_rng(7)
+    buf = ReplayBuffer(512, C.per, seed=0)
+    m = np.ones(N_ACTIONS, np.int8)
+    o = rng.uniform(-1, 1, OBS_DIM).astype(np.float32)
+    for _ in range(256):
+        buf.add(Transition(o, m, 0, -0.05, o, m, False, C.rl.gamma ** C.rl.n_step))
+    agent = MaskedDiscreteSAC(C.rl, C.per, seed=0)
+    for _ in range(300):
+        stats, _ = agent.offline_update(buf.sample(64, 0.4), cql_weight=1.0)
+    assert agent.act(o, m, greedy=True) == 0
+    with torch.no_grad():
+        q = torch.min(*agent.critic(torch.as_tensor(o).unsqueeze(0)))[0]
+    assert int(q.argmax()) == 0 and math.isfinite(stats.critic_loss)
