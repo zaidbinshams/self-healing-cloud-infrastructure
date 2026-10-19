@@ -427,7 +427,9 @@ class BoutiqueEnv(gym.Env):
             "source": self.source, "obs": ep.obs,
             "mask": ep.mask, "a_chosen": a_chosen, "a_exec": a_exec, "reward": r, "next_obs": obs,
             "next_mask": mask_next, "terminated": terminated, "truncated": truncated, "valid": valid,
-            "stale": features.stale, "raw": {"locust": dataclasses.asdict(raw.locust), "features": features_to_dict(features)},
+            "stale": features.stale, "raw": {"locust": dataclasses.asdict(raw.locust), "features": features_to_dict(features),
+                    "server": {"ok": raw.server.ok, "n": raw.server.n, "sla_ms": raw.server.sla_ms,
+                               "pods": list(raw.server.pod_names), "error_type": raw.server.error_type}},
             "decision_latency_s": decision_latency_s, "exec_error": exec_error, "late": late,
         })
         ep.raw, ep.features, ep.mask, ep.obs, ep.k = raw, features, mask_next, obs, k + 1
