@@ -82,3 +82,16 @@ Prometheus queries now reuse one keep-alive HTTP session (`cdc39a4`; library ret
 - **Steady check against the frozen calibration**, with the rule fixed before looking at the data: median tick p95 within ±30 % of 24 ms, q95 ≤ 61 ms, breaches ≤ 2 %. The first check failed (median 69 ms) because A was on battery with other workloads running. With A on AC and the other workloads stopped, the second check passed (median 20 ms, q95 23 ms, 0 breaches, CV 0.058; `data/m3/steady_check_20261013b.jsonl`). The calibration (`b8b95e4`) stands. Run protocol: every session starts with A on AC, the same power mode, no other workloads, and a passing steady check.
 - **HPA baseline (k8s_hpa)** is now specified: autoscaling/v2 HPAs for frontend, cartservice and currencyservice, `AverageValue` = 60 % of each pod's CPU limit (240m / 180m / 300m), min = base, max = contract max; none for productcatalogservice (max 1). They are present only during k8s_hpa episodes (created after the reset settles, deleted in every reset).
 - **Schedule** `eval/schedules/eval_v1.json` was generated from seed 2026 (`ddcf7bd`) before any training.
+
+### Amendment 4 — 2026-10-19, first training attempt discarded; measurement fix; reset settle
+
+- **First sac_per_s0 attempt discarded** after 14 training episodes (started 15:51, stopped 17:30; archived under `data/*/_discarded/`).
+  - All 21 stale ticks in it (14 % of 148) followed an agent RESTART of the frontend: the replaced pod's request log leaves with the pod, so the next server read fell short of the completeness rule and was stale.
+  - Stale transitions are never stored, so the agent could not learn the consequences of that action, and repeated restarts made episodes invalid (which would also have invalidated evaluation episodes).
+  - The decision was made on this data-quality observation alone; no learning results were assessed.
+- **Measurement fix** (`362e445`): when the set of frontend pods changed since the previous tick, a short server read is accepted as the tick's latency if it holds ≥ 8 expected tail samples for the SLA quantile (n·(1−q) ≥ 8, new locked parameter `telemetry.server_churn_min_tail_samples`); the tick is flagged `server_partial`. Without pod churn the completeness rule is unchanged.
+  - Replaying 90 recorded steady ticks gives identical features with 0 partial acceptances.
+  - In a live test, a deliberate frontend rollout restart produced 0 stale ticks.
+- **Calibration re-stamped, not re-measured** (`ebcb08c`): the same 90 recorded ticks give the same values (L_SLA 70 ms, rps_base 34.0, U_base 30, CV 0.239). Steady-state measurement is provably unaffected, and today's session steady check passed (median 22 ms, q95 28 ms, 0 breaches).
+- **Reset settle** (`362e445`): 2 consecutive healthy ticks before an episode starts (was 3), saving ~20 s per episode. The recovery/MTTR definition (3 healthy ticks) is unchanged; every episode also has 2–5 lead-in ticks before any fault.
+- **Training restarts from zero** with the same pre-registered settings: warm start from the same 120 runbook episodes, 200 episodes, probes at 0/75/150, seed 0.
