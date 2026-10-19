@@ -294,3 +294,11 @@ def test_failed_server_read_keeps_previous_pod_reference(steady_raw, contract):
     _, st2 = impute(dataclasses.replace(steady_raw[1], server=ServerLatencyResult(False, error_type="ProtocolError")),
                     st, contract)
     assert st2.server_pods == ("frontend-a",)
+
+
+def test_seeded_pod_reference_detects_churn_on_the_first_episode_tick(steady_raw, contract):
+    """reset() seeds ImputeState(server_pods=<last settle tick>), so a tick-0 restart is churn, not truncation."""
+    q, k = contract.sla.latency_quantile, contract.telemetry.server_churn_min_tail_samples
+    seeded = ImputeState(server_pods=("frontend-a",))
+    f, _ = impute(_with_server(steady_raw[0], n=math.ceil(k / (1 - q)), pods=("frontend-b",)), seeded, contract)
+    assert f.server_partial and not f.stale

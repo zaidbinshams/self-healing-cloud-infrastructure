@@ -182,7 +182,7 @@ class BoutiqueEnv(gym.Env):
                 raise EnvironmentDegraded("cluster did not converge to golden after a hard reset")
         # 5. settle: >= 30 s after the last pod change, then 3 consecutive healthy ticks
         self._wait_pods_settled()
-        last_raw, last_features = self._settle_healthy_ticks()
+        last_raw, last_features, settle_state = self._settle_healthy_ticks()
         if (options or {}).get("hpa_baseline") and not self._create_hpas():
             raise EnvironmentDegraded("HPA baseline objects could not be created (k8s_hpa episode)")
         # 6. start the episode
@@ -192,6 +192,9 @@ class BoutiqueEnv(gym.Env):
             plan = sample_plan(self.rng, self.c) if self.faults_enabled else FaultPlan("NULL", None, None, 0)
         self.ep = EpisodeState(self.episode_count, plan)
         self.ep.raw, self.ep.features = last_raw, last_features
+        # The LOCF cache is cleared per episode (§5.9 step 6); only the frontend pod set of the last settle tick
+        # carries over, so pod churn on the episode's first tick is recognized (2026-10-19).
+        self.ep.impute_state = ImputeState(server_pods=settle_state.server_pods)
         self.injector.arm(plan, self.episode_count)
         self.recorder = TransitionRecorder(self.transitions_root, self.run, self.episode_count)
         self.clock.anchor()
@@ -315,7 +318,7 @@ class BoutiqueEnv(gym.Env):
                 time.sleep(RESET_POLL_S)
         raise EnvironmentDegraded("pods did not settle within the reset deadline")
 
-    def _settle_healthy_ticks(self) -> tuple[RawTick, TickFeatures]:
+    def _settle_healthy_ticks(self) -> tuple[RawTick, TickFeatures, ImputeState]:
         """Run real ticks until RESET_HEALTHY_TICKS consecutive healthy, non-stale ones (§5.9 step 5)."""
         need = RESET_HEALTHY_TICKS
         max_ticks = int(RESET_DEADLINE_S // self.c.clock.tick_s)
@@ -328,7 +331,7 @@ class BoutiqueEnv(gym.Env):
             ok = not features.stale and healthy(features.latency_ms, features.fail_ratio, self.cal.l_sla_ms, self.c)
             streak = streak + 1 if ok else 0
             if streak >= need:
-                return raw, features
+                return raw, features, state
         raise EnvironmentDegraded(f"no {need} consecutive healthy ticks within {max_ticks} settle ticks")
 
     # ========================================================================= step (§5.7)
