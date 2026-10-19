@@ -60,6 +60,10 @@ from env.telemetry import (
 RESET_POLL_S = 5.0
 RESET_DEADLINE_S = 180.0
 SETTLE_AFTER_POD_CHANGE_S = 30.0
+# Healthy ticks required before an episode starts (§5.9 step 5). Was sla.recovery_ticks (3); 2 since
+# 2026-10-19 (human-approved time trade-off, ~20 s per episode). The recovery/MTTR definition keeps
+# sla.recovery_ticks = 3; every episode also has 2–5 lead-in ticks before any fault.
+RESET_HEALTHY_TICKS = 2
 PROM_PING_QUERY = "vector(1)"
 RESET_RESTORE_ID = -1          # reset() RESTOREs are not catalog actions and never reach the agent
 HPA_MANIFEST = REPO_ROOT / "k8s" / "hpa" / "hpa-baseline.yaml"   # k8s_hpa evaluation baseline only
@@ -312,8 +316,8 @@ class BoutiqueEnv(gym.Env):
         raise EnvironmentDegraded("pods did not settle within the reset deadline")
 
     def _settle_healthy_ticks(self) -> tuple[RawTick, TickFeatures]:
-        """Run real ticks until `recovery_ticks` consecutive healthy, non-stale ones (§5.9 step 5)."""
-        need = self.c.sla.recovery_ticks
+        """Run real ticks until RESET_HEALTHY_TICKS consecutive healthy, non-stale ones (§5.9 step 5)."""
+        need = RESET_HEALTHY_TICKS
         max_ticks = int(RESET_DEADLINE_S // self.c.clock.tick_s)
         state, streak = ImputeState(), 0
         self.clock.anchor()

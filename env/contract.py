@@ -86,6 +86,7 @@ class TelemetryCfg:
     stale_truncate_ticks: int
     server_log_margin_s: int               # server latency: log read covers tick_s + margin
     server_log_min_completeness: float     # server_n / locust_n below this => read truncated => missing
+    server_churn_min_tail_samples: int     # partial read accepted under frontend pod churn if n·(1−q) ≥ this
 
 
 @dataclass(frozen=True)

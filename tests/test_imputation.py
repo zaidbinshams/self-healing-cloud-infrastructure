@@ -245,3 +245,52 @@ def test_rollout_recency_counts_ticks_since_generation_change(steady_raw, contra
         bumped.append(dataclasses.replace(r, deployments=dataclasses.replace(r.deployments, items=items)))
     features, _ = run(bumped, contract, state)
     assert [f.services[D].ticks_since_gen_change for f in features] == [0, 1, 2]
+
+
+# ----------------------------------------------------------------------------- frontend pod churn (2026-10-19)
+
+def _with_server(raw, *, n, pods, sla_ms=33.0):
+    return dataclasses.replace(raw, server=dataclasses.replace(raw.server, n=n, sla_ms=sla_ms, pod_names=pods))
+
+
+def test_churn_partial_read_with_enough_tail_samples_is_data(steady_raw, contract):
+    """Frontend pod set changed (restart/scale): a short read with n·(1−q) ≥ min tail samples is accepted."""
+    q, k = contract.sla.latency_quantile, contract.telemetry.server_churn_min_tail_samples
+    n_ok = math.ceil(k / (1 - q))
+    r0, r1 = steady_raw[0], steady_raw[1]
+    assert n_ok < contract.telemetry.server_log_min_completeness * r1.locust.n      # genuinely short read
+    _, st = impute(_with_server(r0, n=r0.server.n, pods=("frontend-a",)), ImputeState(), contract)
+    f1, _ = impute(_with_server(r1, n=n_ok, pods=("frontend-b",), sla_ms=41.0), st, contract)
+    assert f1.server_partial and f1.latency_ms == 41.0 and "server:incomplete" not in f1.failed_sources
+    assert "server/latency_ms" not in f1.imputed
+
+
+def test_churn_read_with_too_few_tail_samples_is_still_missing(steady_raw, contract):
+    q, k = contract.sla.latency_quantile, contract.telemetry.server_churn_min_tail_samples
+    n_low = math.ceil(k / (1 - q)) - 1
+    r0, r1 = steady_raw[0], steady_raw[1]
+    _, st = impute(_with_server(r0, n=r0.server.n, pods=("frontend-a",)), ImputeState(), contract)
+    f1, _ = impute(_with_server(r1, n=n_low, pods=("frontend-b",)), st, contract)
+    assert f1.stale and not f1.server_partial and "server:incomplete" in f1.failed_sources
+
+
+def test_short_read_without_churn_is_still_truncation(steady_raw, contract):
+    """Same pod set as the previous tick: a short read is log rotation/network loss, never data."""
+    r0, r1 = steady_raw[0], steady_raw[1]
+    _, st = impute(_with_server(r0, n=r0.server.n, pods=("frontend-a",)), ImputeState(), contract)
+    f1, _ = impute(_with_server(r1, n=400, pods=("frontend-a",)), st, contract)
+    assert f1.stale and not f1.server_partial and "server:incomplete" in f1.failed_sources
+
+
+def test_first_tick_has_no_churn_reference(steady_raw, contract):
+    """No previous pod set (episode start): the strict completeness rule applies."""
+    f, _ = impute(_with_server(steady_raw[0], n=400, pods=("frontend-b",)), ImputeState(), contract)
+    assert f.stale and not f.server_partial
+
+
+def test_failed_server_read_keeps_previous_pod_reference(steady_raw, contract):
+    from env.telemetry import ServerLatencyResult
+    _, st = impute(_with_server(steady_raw[0], n=steady_raw[0].server.n, pods=("frontend-a",)), ImputeState(), contract)
+    _, st2 = impute(dataclasses.replace(steady_raw[1], server=ServerLatencyResult(False, error_type="ProtocolError")),
+                    st, contract)
+    assert st2.server_pods == ("frontend-a",)

@@ -159,6 +159,7 @@ class ServerLatencyResult:
     error_type: str = ""
     error: str = ""
     latency_s: float = 0.0
+    pod_names: tuple[str, ...] = ()   # frontend pods read this tick (pod churn detection, 2026-10-19)
 
 
 @dataclass(frozen=True)
@@ -194,7 +195,8 @@ def raw_tick_from_dict(d: Mapping[str, Any]) -> RawTick:
                                                            for k, v in deps["items"].items()}}),
         pods=PodsResult(**d["pods"]),
         collect_s=float(d["collect_s"]),
-        server=(ServerLatencyResult(**d["server"]) if "server" in d
+        server=(ServerLatencyResult(**{**d["server"], "pod_names": tuple(d["server"].get("pod_names", ()))})
+                if "server" in d
                 else ServerLatencyResult(False, error_type="absent")),   # fixtures recorded before 2026-10-09
     )
 
@@ -352,11 +354,13 @@ def fetch_server_latency(core: client.CoreV1Api, ns: str, t_from_wall: float, t_
         bodies = list(readers.map(read, pods))
         lat = sorted(x for b in bodies for x in server_window_latencies(b.decode("utf-8", errors="replace"),
                                                                         t_from_wall, t_to_wall))
+        names = tuple(sorted(pods))
         result = (ServerLatencyResult(True, len(lat), _nearest_rank(lat, 0.50), _nearest_rank(lat, 0.99),
                                       _nearest_rank(lat, quantile), quantile, len(pods),
-                                      sum(len(b) for b in bodies)) if lat else
+                                      sum(len(b) for b in bodies), pod_names=names) if lat else
                   ServerLatencyResult(False, 0, pods=len(pods), bytes=sum(len(b) for b in bodies),
-                                      error_type="no_requests", error="no completed requests in the window"))
+                                      error_type="no_requests", error="no completed requests in the window",
+                                      pod_names=names))
     except ApiException as exc:
         result = ServerLatencyResult(False, error_type=f"ApiException:{exc.status}", error=str(exc.reason)[:300])
     except urllib3.exceptions.HTTPError as exc:
@@ -453,6 +457,7 @@ class ImputeState:
     prev_restart_sum: dict[str, int] = field(default_factory=dict)
     generation: dict[str, int] = field(default_factory=dict)
     ticks_since_gen_change: dict[str, int | None] = field(default_factory=dict)
+    server_pods: tuple[str, ...] | None = None    # frontend pod set at the previous successful server read
 
 
 @dataclass(frozen=True)
@@ -482,6 +487,7 @@ class TickFeatures:
     imputed: tuple[str, ...]          # keys filled by rule 3 (LOCF) or rule 4 (zero)
     failed_sources: tuple[str, ...]
     client_p99_ms: float = 0.0
+    server_partial: bool = False      # SLA latency from a partial read accepted under frontend pod churn
 
 
 class _Imputer:
@@ -525,9 +531,18 @@ def impute(raw: RawTick, state: ImputeState, contract: Contract) -> tuple[TickFe
     client_p99_ms = imp.take("locust/p99_ms", loc.p99_ms if loc_ok else None)
     # Server-side SLA latency (G6 option 1, p95 since 2026-10-09): valid only if the log read was complete
     # relative to Locust's count; a read truncated by log rotation is missing data, never a measurement.
+    #
+    # Frontend pod churn (2026-10-19): when the frontend pod set changed since the previous read (restart,
+    # scale), a replaced pod's log leaves with the pod, so the read is short for a known reason. Its surviving
+    # lines are real measurements of this window; they count as the tick's latency if they hold enough tail
+    # samples for the SLA quantile (tail-sample rule, n·(1−q) ≥ server_churn_min_tail_samples). Without
+    # churn, the completeness rule is unchanged: a short read is still treated as truncated (missing).
     srv = raw.server
-    complete = srv.ok and srv.n > 0 and (not loc_ok
-                                         or srv.n >= contract.telemetry.server_log_min_completeness * loc.n)
+    churn = srv.ok and state.server_pods is not None and set(srv.pod_names) != set(state.server_pods)
+    full = not loc_ok or srv.n >= contract.telemetry.server_log_min_completeness * loc.n
+    partial = (churn and not full
+               and srv.n * (1.0 - contract.sla.latency_quantile) >= contract.telemetry.server_churn_min_tail_samples)
+    complete = srv.ok and srv.n > 0 and (full or partial)
     latency_ms = imp.take("server/latency_ms", srv.sla_ms if complete else None)
     if srv.ok and not complete:
         failed = (*failed, "server:incomplete")
@@ -582,9 +597,10 @@ def impute(raw: RawTick, state: ImputeState, contract: Contract) -> tuple[TickFe
 
     features = TickFeatures(latency_ms, fail_ratio, rps, services,
                             stale=bool(imp.imputed or failed), imputed=tuple(imp.imputed), failed_sources=failed,
-                            client_p99_ms=client_p99_ms)
+                            client_p99_ms=client_p99_ms, server_partial=bool(partial and complete))
     _assert_finite(features)
-    return features, ImputeState(imp.new, prev_sum, generation, since)
+    server_pods = srv.pod_names if srv.ok else state.server_pods
+    return features, ImputeState(imp.new, prev_sum, generation, since, server_pods)
 
 
 def _assert_finite(f: TickFeatures) -> None:

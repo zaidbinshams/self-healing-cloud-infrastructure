@@ -137,13 +137,18 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--minutes", type=float, help="steady window length (required unless --from-ticks)")
     ap.add_argument("--from-ticks", type=Path, help="recompute from a recorded data/calibration/<stamp>.jsonl")
+    ap.add_argument("--restamp", action="store_true",
+                    help="with --from-ticks: stamp the recomputed result with the current HEAD (human-approved, only "
+                         "when a measurement-path change provably leaves steady-state ticks unchanged)")
     ap.add_argument("--start-users", type=int, default=40)
     ap.add_argument("--warmup-ticks", type=int, default=2)
     ap.add_argument("--probe-ticks", type=int, default=6)
     ap.add_argument("--max-search", type=int, default=8)
     args = ap.parse_args(argv)
     if args.from_ticks is not None:
-        return finalize_from_recording(args.from_ticks)
+        return finalize_from_recording(args.from_ticks, restamp=args.restamp)
+    if args.restamp:
+        ap.error("--restamp requires --from-ticks")
     if args.minutes is None:
         ap.error("--minutes is required unless --from-ticks is given")
     missing = [v for v in ("KUBE_AGENT", "PROM_URL", "LOCUST_URL") if not os.environ.get(v)]
@@ -200,7 +205,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def finalize(contract: Any, steady: list[dict[str, Any]], u_base: int, search: list[dict[str, Any]], stamp: str,
-             ticks_path: Path, git_sha: str, measured_at: str, summary_suffix: str = ".summary.json") -> int:
+             ticks_path: Path, git_sha: str, measured_at: str, summary_suffix: str = ".summary.json",
+             extra: dict[str, Any] | None = None) -> int:
     """Steps 4: L_SLA, RPS_base, gate G6; write the summary, and calibration.json iff G6 passes."""
     out_dir = REPO_ROOT / "data" / "calibration"
     valid = [t for t in steady if not t["stale"]]
@@ -215,7 +221,7 @@ def finalize(contract: Any, steady: list[dict[str, Any]], u_base: int, search: l
         "latency_median_ms": statistics.median(lats), "latency_q95_ms": quantile_nearest_rank(lats, 0.95),
         "frontend_util_median": statistics.median(t["frontend_util"] for t in valid), "g6": gate,
         "ticks_file": str(ticks_path.relative_to(REPO_ROOT)), "git_sha": git_sha, "measured_at": measured_at,
-        "g6_max_cv": G6_MAX_CV,
+        "g6_max_cv": G6_MAX_CV, **(extra or {}),
     }
     (out_dir / f"{stamp}{summary_suffix}").write_text(json.dumps(summary, indent=1))
     print(json.dumps({k: summary[k] for k in ("u_base", "l_sla_ms", "rps_base", "valid_ticks", "stale_share",
@@ -236,8 +242,13 @@ def finalize(contract: Any, steady: list[dict[str, Any]], u_base: int, search: l
 
 
 
-def finalize_from_recording(ticks_path: Path) -> int:
-    """Recompute an earlier run's result from its recorded ticks + summary; nothing is re-measured."""
+def finalize_from_recording(ticks_path: Path, restamp: bool = False) -> int:
+    """Recompute an earlier run's result from its recorded ticks + summary; nothing is re-measured.
+
+    restamp: write calibration.json with env_git_sha = HEAD (the measurement time stays the original one).
+    Only for a measurement-path change shown not to alter steady-state ticks (e.g. 2026-10-19: the frontend
+    pod-churn rule replays 90 recorded steady ticks identically); requires a clean tree and human approval.
+    """
     contract = load_contract()
     ticks_path = ticks_path.resolve()
     summary_path = ticks_path.with_name(ticks_path.name.replace(".jsonl", ".summary.json"))
@@ -249,6 +260,15 @@ def finalize_from_recording(ticks_path: Path) -> int:
     measured_at = prior.get("measured_at") or datetime.strptime(prior["stamp"], "%Y%m%dT%H%M%S").astimezone(
         timezone.utc).isoformat()
     # Written beside the original summary, never over it: the original records the run as measured.
+    if restamp:
+        if _git("status", "--porcelain", "--untracked-files=no"):
+            print("calibrate: refusing --restamp: tracked working tree is dirty", file=sys.stderr)
+            return 2
+        head = _git("rev-parse", "HEAD")
+        return finalize(contract, steady, int(prior["u_base"]), prior["search"], prior["stamp"], ticks_path, head,
+                        measured_at, summary_suffix=f".restamped-{head[:7]}.summary.json",
+                        extra={"restamped_from_git_sha": prior["git_sha"], "restamped": "same recorded ticks, "
+                               "re-validated at HEAD; nothing re-measured"})
     return finalize(contract, steady, int(prior["u_base"]), prior["search"], prior["stamp"], ticks_path,
                     prior["git_sha"], measured_at, summary_suffix=f".recomputed-g6max{G6_MAX_CV:.2f}.summary.json")
 

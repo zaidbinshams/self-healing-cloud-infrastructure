@@ -500,6 +500,7 @@ Node-level CPU for calibration comes from metrics-server (`metrics.k8s.io`) thro
 4. **Otherwise:** 0; set `telemetry_stale = 1`.
 5. **Restart counter decreased** (a pod disappeared): delta = 0.
 6a. **Server latency source:** read failed, no completed requests, or `server_n < server_log_min_completeness · locust_n` (a read truncated by log rotation): rules 3/4 for `P99`, set stale.
+    - **Frontend pod churn (human-approved 2026-10-19):** if the set of frontend pods differs from the previous tick's (restart, scale), a replaced pod's log leaves with the pod. The surviving pods' lines are then accepted as the tick's latency when `server_n · (1 − latency_quantile) ≥ server_churn_min_tail_samples` (8, the tail-sample rule), and the tick is flagged `server_partial`. Without churn the completeness rule above is unchanged. Reason: otherwise every frontend RESTART made the next tick stale, so its transition was never stored and the agent could not learn the action's consequences (14 % of ticks in the discarded first training run).
 6. **Locust source:**
    - Endpoint failed, or `n == 0` (Locust is dead): carry forward p99/fail/rps and set stale.
    - Requests completed as timeouts: these are real data, not imputation.
@@ -607,7 +608,7 @@ It also clears:
 4. **Escalate if needed.**
    - Deadline missed → **hard reset:** delete all pods in `boutique`, then wait up to another 180 s.
    - Still failing → raise `EnvironmentDegraded`. The watchdog pauses and alerts. **Never continue training on a degraded cluster.**
-5. **Settle.** Wait ≥ 30 s after the last pod change, then require 3 consecutive healthy ticks (`H_t`).
+5. **Settle.** Wait ≥ 30 s after the last pod change, then require **2** consecutive healthy ticks (`H_t`) (was 3; human-approved 2026-10-19 to save ~20 s per episode; recovery/MTTR still uses 3).
 6. **Start the episode.**
    - Re-anchor `T_0`; clear the lock, the history, and the LOCF cache.
    - Sample the plan (fault, target, severity, `L`) from `episode.*` using the env RNG (seeded). In eval, read the plan from the schedule instead.
