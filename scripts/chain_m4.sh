@@ -6,7 +6,7 @@
 #      human has reviewed them and reruns with GATES_REVIEWED=1.
 #   1. warm-start collection: runbook, ε = runbook.warmstart_epsilon, runbook.warmstart_episodes episodes
 #   2. sac_per_s0:      PER-SAC, warm start from (1), seed 0, 200 episodes
-#   3. sac_per_cold_s0: PER-SAC, cold start, seed 0, 200 episodes
+#   3. sac_per_cold_s0: PER-SAC, cold start, seed 0, COLD_EPISODES (100, PREREGISTRATION Amendment 7)
 # Each stage runs under scripts/watchdog.sh and is resumable, so rerunning this script after an
 # interruption continues where it stopped (finished stages return immediately). The chain stops at the
 # first stage that fails, or when data/logs/ALERT or a stage's KILLED marker appears.
@@ -22,6 +22,7 @@ source .venv/bin/activate
 set -a; source config/cluster.env; set +a
 
 EPISODES=200
+COLD_EPISODES="${COLD_EPISODES:-100}"   # Amendment 7 (S2); 200 only for the pre-declared extension
 SEED=0
 WARM_RUN=warmstart_runbook
 VALIDATION_EPISODES=20
@@ -86,5 +87,5 @@ fi
 stage sac_per_s0 data/m4/sac_per_s0/KILLED python -m agents.train --run sac_per_s0 --episodes "$EPISODES" \
   --seed "$SEED" --warmstart "data/transitions/$WARM_RUN"
 stage sac_per_cold_s0 data/m4/sac_per_cold_s0/KILLED python -m agents.train --run sac_per_cold_s0 \
-  --episodes "$EPISODES" --seed "$SEED" --cold
+  --episodes "$COLD_EPISODES" --seed "$SEED" --cold
 echo "=== $(date -Is) chain done"
