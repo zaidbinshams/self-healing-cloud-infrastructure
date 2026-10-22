@@ -10,8 +10,6 @@
 #   4. eval_main: interleaved main evaluation on eval/schedules/eval_v1.json, all five policies from the
 #      final checkpoints (PREREGISTRATION §2-3); resumable, entries in schedule order. The 50 -> 40 cut
 #      (§7, Amendment 7) is applied by stopping the chain on time, never on results.
-#   5. eval_edge: edge subset under netem (scripts/edge_stage.sh: apply, validity dry run, run_eval --subset
-#      edge for runbook + sac_per, clear and verify on every exit).
 # Each stage runs under scripts/watchdog.sh and is resumable, so rerunning this script after an
 # interruption continues where it stopped (finished stages return immediately). The chain stops at the
 # first stage that fails, or when data/logs/ALERT or a stage's KILLED marker appears.
@@ -96,5 +94,8 @@ stage sac_per_cold_s0 data/m4/sac_per_cold_s0/KILLED python -m agents.train --ru
 stage eval_main - python -m eval.run_eval --schedule eval/schedules/eval_v1.json --out data/eval/eval_v1_main \
   --policy k8s_default --policy k8s_hpa --policy runbook \
   --policy sac_per=data/m4/sac_per_s0/ckpt/final.pt --policy sac_per_cold=data/m4/sac_per_cold_s0/ckpt/final.pt
+# Stage 5, eval_edge: edge subset under netem (scripts/edge_stage.sh: apply, validity dry run, run_eval --subset
+# edge for runbook + sac_per, clear and verify on every exit). Kept below stage 4 so a chain already running
+# (bash reads scripts incrementally) sees an unchanged prefix.
 stage eval_edge - bash scripts/edge_stage.sh
 echo "=== $(date -Is) chain done"
