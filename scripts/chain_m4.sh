@@ -7,6 +7,9 @@
 #   1. warm-start collection: runbook, ε = runbook.warmstart_epsilon, runbook.warmstart_episodes episodes
 #   2. sac_per_s0:      PER-SAC, warm start from (1), seed 0, 200 episodes
 #   3. sac_per_cold_s0: PER-SAC, cold start, seed 0, COLD_EPISODES (100, PREREGISTRATION Amendment 7)
+#   4. eval_main: interleaved main evaluation on eval/schedules/eval_v1.json, all five policies from the
+#      final checkpoints (PREREGISTRATION §2-3); resumable, entries in schedule order. The 50 -> 40 cut
+#      (§7, Amendment 7) is applied by stopping the chain on time, never on results.
 # Each stage runs under scripts/watchdog.sh and is resumable, so rerunning this script after an
 # interruption continues where it stopped (finished stages return immediately). The chain stops at the
 # first stage that fails, or when data/logs/ALERT or a stage's KILLED marker appears.
@@ -88,4 +91,7 @@ stage sac_per_s0 data/m4/sac_per_s0/KILLED python -m agents.train --run sac_per_
   --seed "$SEED" --warmstart "data/transitions/$WARM_RUN"
 stage sac_per_cold_s0 data/m4/sac_per_cold_s0/KILLED python -m agents.train --run sac_per_cold_s0 \
   --episodes "$COLD_EPISODES" --seed "$SEED" --cold
+stage eval_main - python -m eval.run_eval --schedule eval/schedules/eval_v1.json --out data/eval/eval_v1_main \
+  --policy k8s_default --policy k8s_hpa --policy runbook \
+  --policy sac_per=data/m4/sac_per_s0/ckpt/final.pt --policy sac_per_cold=data/m4/sac_per_cold_s0/ckpt/final.pt
 echo "=== $(date -Is) chain done"
