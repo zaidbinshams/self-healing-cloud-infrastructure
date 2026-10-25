@@ -44,7 +44,7 @@ Full results with confidence intervals, test statistics and per-episode data are
 | `paper_a/`, `paper_b/` | Writing packages for the two papers: numbers, figure data, LaTeX skeletons, references |
 | `figures/` | Generated figures |
 
-`docs/PROJECT_EXPLAINER.md` explains the whole project in one document (design, formulas, decisions, results, how to read the code, how to present it). `CLAUDE.md` is the technical specification: the tick protocol, observation and action definitions, PromQL queries, imputation rules and safety constraints. `PLAN.md` lists the milestones and their validation gates.
+`docs/PROJECT_EXPLAINER.md` explains the whole project in one document (design, formulas, decisions, results, how to read the code, how to present it). `docs/CODE_EXPLAINER.md` walks through the source folder by folder, with the key lines of each file and why they are written that way. `CLAUDE.md` is the technical specification: the tick protocol, observation and action definitions, PromQL queries, imputation rules and safety constraints. `PLAN.md` lists the milestones and their validation gates.
 
 ## Requirements
 

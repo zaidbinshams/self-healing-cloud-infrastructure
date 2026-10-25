@@ -504,7 +504,7 @@ Suggested order. About two hours for a full read; 30 minutes for the first four.
 4. **`paper_a/README.md`, then `paper_a/05_numbers.md`**: every result with its source.
 5. **`CLAUDE.md`**: the technical specification (tick protocol §5.7, observation §5.3, reward §5.6, mask §5.8, imputation §5.5, agent rules §5.12).
 6. **`config/contract.yaml`**: every locked number in one place.
-7. **The code, in this order:**
+7. **The code, in this order** (`docs/CODE_EXPLAINER.md` explains the key lines of each file):
    - `env/boutique_env.py` (the loop: `reset()` and `step()`);
    - `env/telemetry.py` (what is measured);
    - `env/reward.py` and the mask in `env/`;
