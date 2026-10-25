@@ -50,7 +50,10 @@
 ## Table VI — Hypotheses and outcomes (in `main.tex`; data `tests.csv`)
 - One row per H1–H5 with the decisive statistic. H1 and H5 carry the bold "not" parts; keep them bold or otherwise visible.
 
-## Regenerating (project lead, on Machine B)
+## Drawing the figures yourselves
+See `08_making_figures.md`: `python paper_a/make_figures.py` redraws a1–a5 from `figure_data/` (no raw data needed).
+
+## Regenerating the CSVs from raw data (project lead only; needs `data/` from the backup)
 ```
 python -m eval.analyze --main data/eval/eval_v1_main --edge data/eval/eval_v1_edge \
     --train sac_per=data/m4/sac_per_s0 --train sac_per_cold=data/m4/sac_per_cold_s0 \

@@ -38,6 +38,7 @@ We trained a reinforcement-learning agent **online on a live Kubernetes cluster*
 | `06_references.md` | each reference: what it does, how we differ, where to cite; verification status | Related Work, citations |
 | `07_format_and_submission.md` | template rules, AI disclosure, artefact, final checklist | formatting and submitting |
 | `latex/` | `main.tex` skeleton: sections with TODO points, **equations (1)–(12), Algorithm 1, Fig. 1 (TikZ), Tables I (faults), II (hyper-parameters), III (main results), IV (actions), V (seed 1), VI (hypotheses) already filled**, figure slots; `refs.bib`; `figures/` (a1–a5, vector PDF) | the actual paper |
+| `08_making_figures.md` + `make_figures.py` | **how to draw every figure yourselves** from the CSVs (one command, or recipes for Excel/Sheets/pgfplots), labelling and caption rules, checks against the numbers | making your own figures |
 | `figure_data/` | CSV behind every figure and table (per-episode rows, summaries, all test statistics, KM curves, training returns, action sequences, latency context) | redrawing figures, checking numbers |
 
 ## Results at a glance (details and sources in `05_numbers.md`)
@@ -55,7 +56,8 @@ We trained a reinforcement-learning agent **online on a live Kubernetes cluster*
 1. `01_story_and_claims.md` (everyone).
 2. `03_figures_tables.md` with `latex/figures/*.pdf` open.
 3. Your section in `02_section_guide.md` + `05_numbers.md`.
-4. `07_format_and_submission.md` before formatting.
+4. `08_making_figures.md` before drawing figures.
+5. `07_format_and_submission.md` before formatting.
 
 ## Suggested split (4 writers)
 
