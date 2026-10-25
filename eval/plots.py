@@ -7,6 +7,7 @@ Fixed policy → colour mapping (colour follows the policy in every figure), val
     a2_mttr_by_fault.pdf MTTR per fault type and policy (dots = episodes, bar = median; censored at 360 s)
     a3_training.pdf      training return (rolling mean) warm vs cold start
     a4_edge.pdf          median MTTR, main vs edge condition, runbook and PER-SAC
+    a5_seed1.pdf         median MTTR, main block vs seed-1 block: PER-SAC seed 0 → 1, runbook main → anchor
 
 Usage:  python -m eval.plots --analysis data/eval/analysis.json --main data/eval/main \\
             [--edge data/eval/edge] [--train sac_per=data/m4/sac_per_s0 ...] [--out figures/paperA]
@@ -38,6 +39,7 @@ STYLE = {   # policy: (label, colour, linestyle, marker)
     "k8s_default": ("Kubernetes", "#e87ba4", (0, (5, 2, 1, 2)), "v"),
 }
 ORDER = list(STYLE)
+SEED1 = ("sac_per_s1", ("PER-SAC (warm, seed 1)", STYLE["sac_per"][1], ":", "o"))   # same policy, same colour
 COL_W_IN = 3.4
 ROLL = 10
 LABEL_GAP = 0.08                       # KM end labels, in survival units
@@ -116,39 +118,70 @@ def fig_mttr_by_fault(rows: list[dict[str, Any]], out: Path, censor_s: float) ->
 
 def fig_training(train: dict[str, list[dict[str, Any]]], out: Path) -> None:
     fig, ax = plt.subplots(figsize=(COL_W_IN, 2.2))
-    for p in (p for p in ("sac_per", "sac_per_cold") if p in train):
+    style = STYLE | dict([SEED1])
+    ends = []
+    for p in (p for p in ("sac_per", SEED1[0], "sac_per_cold") if p in train):
         ret = [r["return"] for r in train[p] if not r.get("interrupted")]
         if len(ret) < ROLL:
             continue
         roll = np.convolve(ret, np.ones(ROLL) / ROLL, mode="valid")
         x = np.arange(ROLL, len(ret) + 1)
-        label, c, ls, _ = STYLE[p]
+        label, c, ls, _ = style[p]
         ax.plot(x, roll, color=c, ls=ls)
-        ax.annotate(label, (x[-1], roll[-1]), xytext=(3, 0), textcoords="offset points", va="center",
-                    fontsize=7, color=INK_2)
+        ends.append((x[-1], roll[-1], label))
+    span = np.ptp([e[1] for e in ends]) if ends else 0.0
+    ys = dodge([e[1] for e in ends], max(span, 1.0) * 0.12)
+    for y, (x_end, _, label) in zip(ys, ends, strict=True):
+        ax.annotate(label, (x_end, y), xytext=(3, 0), textcoords="offset points", va="center",
+                    fontsize=7, color=INK_2, annotation_clip=False)
     ax.set_xlabel("training episode")
     ax.set_ylabel(f"return ({ROLL}-episode mean)")
     _save(fig, out, "a3_training")
 
 
+def _paired_medians(pairs: list[tuple[str, dict, dict]], xlabels: tuple[str, str], out: Path, name: str) -> None:
+    """Per-fault median MTTR in two conditions as dumbbells: hollow = first condition, filled = second."""
+    fig, ax = plt.subplots(figsize=(COL_W_IN, 2.7))
+    width = 0.32
+    for k, (p, left, right) in enumerate(pairs):
+        label, c, ls, m = STYLE[p]
+        dx = (k - (len(pairs) - 1) / 2) * width
+        for j, f in enumerate(FAULTS):
+            a, b = left.get(f), right.get(f)
+            if a and b:
+                ya, yb = a["mttr_median_s"], b["mttr_median_s"]
+                ax.plot([j + dx] * 2, [ya, yb], color=c, ls=ls, lw=1.2)
+                ax.plot(j + dx, ya, marker=m, ms=5, mfc=SURFACE, mec=c, ls="none")
+                ax.plot(j + dx, yb, marker=m, ms=5, color=c, ls="none")
+        ax.plot([], [], color=c, ls=ls, marker=m, ms=4, label=label)
+    ax.plot([], [], marker="o", ms=4, mfc=SURFACE, mec=MUTED, ls="none", label=xlabels[0])
+    ax.plot([], [], marker="o", ms=4, color=MUTED, ls="none", label=xlabels[1])
+    ax.set_xticks(range(len(FAULTS)), list(FAULTS))
+    ax.set_xlim(-0.6, len(FAULTS) - 0.4)
+    ax.set_ylabel("median MTTR (s)")
+    ax.legend(frameon=False, fontsize=6.5, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.12))
+    _save(fig, out, name)
+
+
+def _by_fault(summary: list[dict[str, Any]], policy: str) -> dict[str, dict[str, Any]]:
+    return {s["fault"]: s for s in summary if s["policy"] == policy}
+
+
 def fig_edge(analysis: dict[str, Any], out: Path) -> None:
     if "H5_edge" not in analysis:
         return
-    main = {(s["policy"], s["fault"]): s for s in analysis["summary"]}
-    edge = {(s["policy"], s["fault"]): s for s in analysis["H5_edge"]["summary"]}
-    fig, ax = plt.subplots(figsize=(COL_W_IN, 2.2))
-    for p in ("runbook", "sac_per"):
-        label, c, ls, m = STYLE[p]
-        for j, f in enumerate(FAULTS):
-            a, b = main.get((p, f)), edge.get((p, f))
-            if a and b:
-                ax.plot([0, 1], [a["mttr_median_s"], b["mttr_median_s"]], color=c, ls=ls, marker=m, ms=4,
-                        label=label if j == 0 else None)
-    ax.set_xticks([0, 1], ["main", "edge (netem)"])
-    ax.set_xlim(-0.3, 1.3)
-    ax.set_ylabel("median MTTR per fault (s)")
-    ax.legend(frameon=False, fontsize=7)
-    _save(fig, out, "a4_edge")
+    main, edge = analysis["summary"], analysis["H5_edge"]["summary"]
+    _paired_medians([(p, _by_fault(main, p), _by_fault(edge, p)) for p in ("runbook", "sac_per")],
+                    ("main", "edge (netem)"), out, "a4_edge")
+
+
+def fig_seed1(analysis: dict[str, Any], out: Path) -> None:
+    if "seed1" not in analysis:
+        return
+    main, block = analysis["summary"], analysis["seed1"]["summary"]
+    _paired_medians([("runbook", _by_fault(main, "runbook"), _by_fault(block, "runbook")),
+                     ("sac_per", _by_fault(main, "sac_per"), _by_fault(block, analysis["seed1"]["agent"]))],
+                    ("main (seed 0)", "seed-1 block"), out, "a5_seed1")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -167,6 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     fig_mttr_by_fault(rows, args.out, args.censor_s)
     fig_training(train, args.out)
     fig_edge(analysis, args.out)
+    fig_seed1(analysis, args.out)
     print(f"wrote figures to {args.out}")
     return 0
 

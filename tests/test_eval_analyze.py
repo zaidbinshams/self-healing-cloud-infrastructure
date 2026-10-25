@@ -51,3 +51,18 @@ def test_plots_render_from_hand_written_rows(tmp_path):
     fig_mttr_by_fault(final_valid(rows())[0], tmp_path, 360.0)
     fig_training({"sac_per": [{"return": -float(i % 7)} for i in range(30)]}, tmp_path)
     assert {p.name for p in tmp_path.glob("*.pdf")} == {"a1_km.pdf", "a2_mttr_by_fault.pdf", "a3_training.pdf"}
+
+
+def test_replication_renames_agent_and_checks_anchor_drift():
+    from eval.analyze import replication
+    main = rows()
+    MTTR["sac_per_s1"] = 65.0
+    try:
+        block = [row(p, r["index"], r["fault"]) for r in main if r["policy"] == "runbook" for p in ("runbook", "sac_per_s1")]
+    finally:
+        del MTTR["sac_per_s1"]
+    res = replication(block, main, "sac_per_s1", [{"fault": "NULL", "actions": 0, "return": 0.0}])
+    assert res["H2"]["pooled"]["mttr"]["non_inferior"]                  # 65 vs 70 within one tick
+    assert res["anchor_drift"]["pooled"]["median_a"] == res["anchor_drift"]["pooled"]["median_b"]
+    assert res["seed1_vs_seed0"]["F1"]["a"] == "sac_per_s1"
+    assert res["H4"]["train_null_episodes"] == 1 and res["H4"]["train_frr"] == 0.0

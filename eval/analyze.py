@@ -9,9 +9,11 @@ Only the final valid attempt of each (entry, policy) counts; exclusions are coun
     H4  sac_per: 0 safety violations; NULL episodes with an action (eval) and FRR over training NULL episodes
     H5  edge subset: sac_per − runbook MTTR gap does not widen beyond the margin
 Plus pooled Kaplan–Meier / log-rank over F1–F4 and per-policy summaries.
+    seed1  (Amendment 8, replication) H2 rule within the seed-1 block, H4, runbook-anchor drift, seed 1 vs 0
 
 Usage:  python -m eval.analyze --main data/eval/main [--edge data/eval/edge] \\
-            [--train sac_per=data/m4/sac_per_s0 --train sac_per_cold=data/m4/sac_per_cold_s0] --out data/eval/analysis.json
+            [--train sac_per=data/m4/sac_per_s0 --train sac_per_cold=data/m4/sac_per_cold_s0] \\
+            [--seed1 sac_per_s1=data/eval/seed1=data/m4/sac_per_s1] --out data/eval/analysis.json
 """
 
 from __future__ import annotations
@@ -141,6 +143,31 @@ def km_pooled(rows: list[dict[str, Any]], policies: list[str]) -> dict[str, Any]
     return out
 
 
+def replication(seed_rows: list[dict[str, Any]], main_rows: list[dict[str, Any]], agent: str,
+                train: list[dict[str, Any]]) -> dict[str, Any]:
+    """Amendment 8: a second training seed (agent) against a same-block runbook anchor.
+
+    H2's rule within the block, H4 for the agent, anchor-vs-main runbook drift (descriptive), and the
+    agent against main-evaluation sac_per (seed 0 vs seed 1)."""
+    rows, excl = final_valid(seed_rows)
+    main, _ = final_valid(main_rows)
+    as_sac = [r | {"policy": "sac_per"} if r["policy"] == agent else r for r in rows]
+    drift, seeds = {}, {}
+    for f in (*FAULTS, "pooled"):
+        sel = None if f == "pooled" else f
+        anchor = [r for r in by(rows, "runbook", sel) if r["fault"] != "NULL"]
+        ref = [r for r in by(main, "runbook", sel) if r["fault"] != "NULL"]
+        s1 = [r for r in by(rows, agent, sel) if r["fault"] != "NULL"]
+        s0 = [r for r in by(main, "sac_per", sel) if r["fault"] != "NULL"]
+        if anchor and ref:
+            drift[f] = as_dicts(stats.compare({"anchor": mttr(anchor), "main": mttr(ref)}, [("anchor", "main")], SEED))[0]
+        if s1 and s0:
+            seeds[f] = as_dicts(stats.compare({agent: mttr(s1), "sac_per": mttr(s0)}, [(agent, "sac_per")], SEED))[0]
+    return {"agent": agent, "excluded_attempts": excl, "summary": summary(rows, sorted({r["policy"] for r in rows})),
+            "H2": h2(as_sac, "seed1"), "H4": h4(as_sac, {"sac_per": train}), "anchor_drift": drift,
+            "seed1_vs_seed0": seeds}
+
+
 def analyze(main: list[dict[str, Any]], edge: list[dict[str, Any]], train: dict[str, list[dict[str, Any]]]
             ) -> dict[str, Any]:
     rows, excl = final_valid(main)
@@ -160,11 +187,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--main", type=Path, required=True, help="run_eval --out dir of the main evaluation")
     ap.add_argument("--edge", type=Path, default=None)
     ap.add_argument("--train", action="append", default=[], help="name=train out dir (episodes.jsonl)")
+    ap.add_argument("--seed1", default=None, help="agent=eval dir=train dir (Amendment 8 replication block)")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args(argv)
     train = {k: read_rows(Path(v) / "episodes.jsonl") for k, v in (t.split("=", 1) for t in args.train)}
-    res = analyze(read_rows(args.main / "episodes.jsonl"),
-                  read_rows(args.edge / "episodes.jsonl") if args.edge else [], train)
+    main_rows = read_rows(args.main / "episodes.jsonl")
+    res = analyze(main_rows, read_rows(args.edge / "episodes.jsonl") if args.edge else [], train)
+    if args.seed1:
+        agent, ev, tr = args.seed1.split("=", 2)
+        res["seed1"] = replication(read_rows(Path(ev) / "episodes.jsonl"), main_rows, agent,
+                                   read_rows(Path(tr) / "episodes.jsonl"))
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(res, indent=1, default=float))
     print(f"wrote {args.out}")

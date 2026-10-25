@@ -2,7 +2,7 @@
 
     mann_whitney        two-sided Mann–Whitney U on MTTR (censored at the fault window)
     holm                Holm step-down adjustment within a family of comparisons
-    cliffs_delta        effect size δ = P(x < y) − P(x > y)  (negative = x has lower MTTR)
+    cliffs_delta        effect size δ = P(x < y) − P(x > y)  (positive = x has lower values, e.g. lower MTTR)
     bootstrap_median_diff  percentile bootstrap 95 % CI of median(x) − median(y) (10 000 resamples)
     kaplan_meier        time-to-recovery survival curve with censoring
     logrank             two-group log-rank test (scipy.stats.logrank)
