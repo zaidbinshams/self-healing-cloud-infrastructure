@@ -1,6 +1,6 @@
 # 03 — Figures and Tables
 
-> The four data figures (b1–b4) are **final, vector PDFs ready for IEEE** (`latex/figures/`). They are drawn from recorded data with a colour-blind-safe palette, and are readable in grayscale through marker shapes and direct labels. **You do not need to redraw them.** If you want a different style, the raw data is in `figure_data/` (CSV), and the "Redraw notes" below say how. The only figure still to make is **Fig. 1 (testbed diagram)**: spec below.
+> The four data figures (b1–b4) are **final, vector PDFs ready for IEEE** (`latex/figures/`). They are drawn from recorded data with a colour-blind-safe palette, and are readable in grayscale through marker shapes and direct labels. **You do not need to redraw them.** If you want a different style, run `python paper_b/make_figures.py` (it redraws them from `figure_data/`), or follow the recipes in `08_making_figures.md`. The only figure still to make is **Fig. 1 (testbed diagram)**: spec below.
 >
 > Captions: write them yourselves from the "Caption facts". IEEE style: the figure caption goes below the figure, the table caption above the table. Refer to every figure/table in the text before it appears.
 

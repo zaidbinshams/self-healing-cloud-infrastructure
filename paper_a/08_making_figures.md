@@ -21,6 +21,8 @@ python paper_a/make_figures.py
 ```
 Output goes to `paper_a/latex/figures/`: `a1_km`, `a2_mttr_by_fault`, `a3_training`, `a4_edge` and `a5_seed1`, each as `.pdf` (vector, used by LaTeX) and `.png` (preview). Upload the PDFs to Overleaf's `figures/` folder.
 
+For slides: `python paper_a/make_figures.py --slides` writes 600-dpi PNGs to `paper_a/slides/` and leaves the paper figures alone. Ready-made copies are already in `paper_a/slides/`.
+
 ### Without installing anything (Google Colab)
 1. Open colab.research.google.com and create a new notebook.
 2. Run `!git clone https://github.com/zaidbinshams/self-healing-cloud-infrastructure.git`
@@ -76,6 +78,22 @@ TikZ code in `latex/main.tex` (inside `\begin{figure}`). Edit the node text ther
 
 ---
 
+## Numbering and labels
+
+| In the paper | File | LaTeX label | Width |
+|---|---|---|---|
+| Fig. 1 | TikZ inside `main.tex` | `fig:arch` | one column |
+| Fig. 2 | `a1_km.pdf` | `fig:km` | one column |
+| Fig. 3 | `a2_mttr_by_fault.pdf` | `fig:byfault` | full width (`figure*`) |
+| Fig. 4 | `a3_training.pdf` | `fig:train` | one column |
+| Fig. 5 | `a4_edge.pdf` | `fig:edge` | one column |
+| Fig. 6 (optional) | `a5_seed1.pdf` | not in `main.tex` yet | one column |
+
+- The a1–a5 file names are fixed; the figure numbers are assigned by LaTeX in order of appearance.
+- Fig. 6 is optional (Table V already carries the seed-1 result). To add it, copy the `fig:edge` block in `main.tex`, change the file to `figures/a5_seed1.pdf` and the label to `fig:seed1`, and place it after Table V.
+- Refer to figures with `Fig.~\ref{fig:km}`; never type a number by hand.
+- Captions: write them from the caption facts in `03_figures_tables.md`.
+
 ## Labelling rules (all figures)
 
 1. **Units on every axis**, in brackets: "MTTR (s)", "time since injection (s)".
@@ -107,3 +125,22 @@ TikZ code in `latex/main.tex` (inside `\begin{figure}`). Edit the node text ther
 - **Fig. 3:** the medians are PER-SAC F1 59, F2 240, F3 60, F4 60 s; runbook 80, 89, 50, 80 s.
 - **Fig. 5:** PER-SAC edge F1 99, F2 229, F3 49, F4 69 s; runbook edge 78, 178, 59, 69 s.
 - If anything differs, recheck your filtering first: final valid episodes only (the CSVs already hold only those), and the correct `policy` and `fault` rows.
+
+---
+
+## Using the figures in the presentation
+
+- **Use the slide PNGs** in `paper_a/slides/` (600 dpi, same design as the paper), or the PDFs if your slide tool takes vector images (PowerPoint and Keynote do). Never screenshot the paper PDF.
+- **One figure per slide, filling most of the slide.** The figures were drawn for a 3.4-inch column; scaled up to slide width, the 7–8 pt labels become about 20 pt, which is readable from the back of a room.
+- **The slide title states the finding, not the figure name.** For example:
+  - Fig. 2 (KM): "The agent and the runbook recover almost every fault; Kubernetes recovers none."
+  - Fig. 3 (by fault): "The agent cures F1, F3 and F4 in about three ticks (median ~60 s); F2 on currencyservice is its blind spot."
+  - Fig. 4 (training): "Without the warm start, the agent does not learn."
+  - Fig. 5 (edge): "Under a degraded link the pooled medians stay almost the same (non-inferiority not established, n = 16)."
+- **Say the colours once** at the first figure: blue = PER-SAC, orange = runbook, green = cold start, yellow = HPA, pink = Kubernetes. They are the same in every figure.
+- **Slides don't need "Fig. n" numbers.** If you reuse a paper figure, drop the number, keep the axis labels and legend, and put a one-line takeaway under it.
+- **Point at one thing per figure:** in Fig. 2 the final plateaus (0.125, 0.05, 0.75, 1.0); in Fig. 3 the F2 panel; in Fig. 4 the gap between the warm and cold curves.
+- **Fig. 1 (architecture) for slides:** after the paper compiles in Overleaf, crop Fig. 1 from the PDF, or use the diagram in `docs/PROJECT_EXPLAINER.md` §3 redrawn in draw.io.
+- **Tables on slides:** don't paste Table III whole. Show the recovery row (0/10/38/35/15 of 40) and the median MTTR row, and leave the rest for questions.
+- Best order for a short talk: the results table → Fig. 2 → Fig. 3 → Fig. 4 → the honest-findings slide.
+

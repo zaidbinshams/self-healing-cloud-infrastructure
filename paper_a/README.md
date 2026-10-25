@@ -38,7 +38,8 @@ We trained a reinforcement-learning agent **online on a live Kubernetes cluster*
 | `06_references.md` | each reference: what it does, how we differ, where to cite; verification status | Related Work, citations |
 | `07_format_and_submission.md` | template rules, AI disclosure, artefact, final checklist | formatting and submitting |
 | `latex/` | `main.tex` skeleton: sections with TODO points, **equations (1)–(12), Algorithm 1, Fig. 1 (TikZ), Tables I (faults), II (hyper-parameters), III (main results), IV (actions), V (seed 1), VI (hypotheses) already filled**, figure slots; `refs.bib`; `figures/` (a1–a5, vector PDF) | the actual paper |
-| `08_making_figures.md` + `make_figures.py` | **how to draw every figure yourselves** from the CSVs (one command, or recipes for Excel/Sheets/pgfplots), labelling and caption rules, checks against the numbers | making your own figures |
+| `08_making_figures.md` + `make_figures.py` | **how to draw every figure yourselves** from the CSVs (one command, or recipes for Excel/Sheets/pgfplots), numbering, labelling and caption rules, checks against the numbers, using the figures on slides | making your own figures and slides |
+| `slides/` | the five figures as 600-dpi PNGs for presentations | slides |
 | `figure_data/` | CSV behind every figure and table (per-episode rows, summaries, all test statistics, KM curves, training returns, action sequences, latency context) | redrawing figures, checking numbers |
 
 ## Results at a glance (details and sources in `05_numbers.md`)

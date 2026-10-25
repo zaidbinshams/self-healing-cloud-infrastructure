@@ -22,7 +22,9 @@ A self-healing controller (runbook or RL agent) watches an SLA latency signal an
 | `06_references.md` | verified related work: what each paper does, where to cite it, how we differ | Related Work + citations |
 | `07_format_and_submission.md` | template sources, IEEE rules, anonymization (if the venue is double-blind), AI disclosure, artifact, final checklist | formatting and submitting |
 | `latex/` | `main.tex` skeleton (compiles; headings, figure/table slots, numbers already in tables), `refs.bib` (verified), `figures/` (b1–b4 as vector PDF), `skeleton_preview.pdf` | the actual paper |
+| `08_making_figures.md` + `make_figures.py` | **how to draw every figure yourselves** from the CSVs (one command, or recipes for other tools), numbering and labels, checks against the numbers, using the figures on slides | making your own figures and slides |
 | `figure_data/` | raw CSV data behind every figure and table | redrawing figures in any tool, checking numbers |
+| `slides/` | the four figures as 600-dpi PNGs for presentations | slides |
 
 ## Reading order (about 1.5 h for the whole team)
 
@@ -30,6 +32,7 @@ A self-healing controller (runbook or RL agent) watches an SLA latency signal an
 2. `03_figures_tables.md` with the PDFs in `latex/figures/` open: the figures *are* the results.
 3. Your section's part of `02_section_guide.md`, plus `05_numbers.md`.
 4. `07_format_and_submission.md` before you start formatting.
+5. `08_making_figures.md` before drawing or restyling figures.
 
 ## Suggested split (4 writers) and order of work
 
@@ -64,4 +67,4 @@ python -m eval.paperb_figures     # redraw b1–b4 (figures/paperB/*.pdf)
 python -m eval.paperb_export      # refresh paper_b/figure_data/*.csv
 ```
 
-Those scripts need the raw data on Machine B. Ask the project lead, who runs them.
+Those scripts need the raw data on Machine B. Ask the project lead, who runs them. To restyle the figures without the raw data, use `python paper_b/make_figures.py` (it reads only `figure_data/`; see `08_making_figures.md`).

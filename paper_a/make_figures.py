@@ -3,6 +3,7 @@
 Needs Python 3.9+ with matplotlib and numpy:   pip install matplotlib numpy
 Run from the repository root or from paper_a/:  python paper_a/make_figures.py   (or: python make_figures.py)
 Output: paper_a/latex/figures/*.pdf (vector, for LaTeX) and *.png (preview), overwriting the shipped ones.
+        With --slides: paper_a/slides/*.png at 600 dpi for presentations (the LaTeX figures are not touched).
 
     a1_km            pooled time to recovery (Kaplan-Meier), main evaluation        <- km_curves.csv
     a2_mttr_by_fault MTTR per fault and policy, one dot per episode, bar = median    <- episodes_main.csv
@@ -15,6 +16,7 @@ Change labels, sizes or colours in the CONFIG block below; never change the data
 
 from __future__ import annotations
 
+import argparse
 import csv
 from pathlib import Path
 
@@ -28,6 +30,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "figure_data"
 OUT = HERE / "latex" / "figures"
+SLIDES_OUT = HERE / "slides"
 COL_W_IN = 3.4                    # IEEE one-column width (3.5 in) minus a margin; full width = 2 * COL_W_IN
 CENSOR_S = 360.0                  # MTTR censoring point (fault window, 18 ticks x 20 s)
 ROLL = 10                         # rolling-mean window for the training curve
@@ -56,6 +59,8 @@ plt.rcParams.update({
 })
 # ------------------------------------------------------------------------------------------------ helpers
 
+SLIDES = False
+
 
 def read(name: str) -> list[dict[str, str]]:
     with (DATA / name).open(newline="") as f:
@@ -64,10 +69,14 @@ def read(name: str) -> list[dict[str, str]]:
 
 def save(fig: plt.Figure, name: str) -> None:
     fig.tight_layout()
-    for ext in ("pdf", "png"):
-        fig.savefig(OUT / f"{name}.{ext}", dpi=300)
+    if SLIDES:
+        fig.savefig(SLIDES_OUT / f"{name}.png", dpi=600)
+        print(f"wrote {SLIDES_OUT / name}.png")
+    else:
+        for ext in ("pdf", "png"):
+            fig.savefig(OUT / f"{name}.{ext}", dpi=300)
+        print(f"wrote {OUT / name}.pdf")
     plt.close(fig)
-    print(f"wrote {OUT / name}.pdf")
 
 
 def spread(ys: list[float], gap: float) -> list[float]:
@@ -181,7 +190,10 @@ def fig_seed1() -> None:
 
 
 if __name__ == "__main__":
-    OUT.mkdir(parents=True, exist_ok=True)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--slides", action="store_true", help="write 600-dpi PNGs to paper_a/slides/ instead")
+    SLIDES = ap.parse_args().slides
+    (SLIDES_OUT if SLIDES else OUT).mkdir(parents=True, exist_ok=True)
     fig_km()
     fig_mttr_by_fault()
     fig_training()
