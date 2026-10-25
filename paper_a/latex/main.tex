@@ -174,6 +174,27 @@ w_i=\frac{(N P(i))^{-\beta}}{\max_k w_k},
 \end{align}
 $\lambda=1$, $\beta_p=0.5$, $\beta$: $0.4\rightarrow1$ over 15\,000 gradient steps, $\alpha$ fixed at 0.1 online. \todo{why CQL + fixed $\alpha$ (Amendments 5--6: extrapolation error made the agent act in healthy states); why warm start: behaviour cloning of the actor on 120 runbook episodes with $\varepsilon=0.25$ exploration, 2000 offline steps. Note: our PER priority exponent is written $\beta_p$ here to avoid a clash with SAC's $\alpha$; the contract calls it \texttt{per.alpha}.}
 
+\begin{table}[t]
+\centering
+\caption{\todo{caption: agent hyper-parameters (locked in the contract before training)}}
+\label{tab:hparams}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Networks & actor, twin critics: MLP $36\rightarrow256\rightarrow256\rightarrow12$, ReLU \\
+$\gamma$, $n$-step, $\tau$ & 0.93, 3, 0.005 \\
+Learning rates & $3\times10^{-4}$ (actor, critics) \\
+Batch, buffer & 128, 50\,000 \\
+Updates per tick & 4 (budget 1\,s) \\
+Temperature $\alpha$ & fixed 0.1 online \\
+CQL weight $\lambda$ & 1.0 (offline and online) \\
+PER & $\beta_p=0.5$, $\beta$ $0.4\rightarrow1$ (15\,000 steps), $\epsilon=10^{-3}$, cap 1 \\
+Warm start & 120 runbook episodes ($\varepsilon=0.25$), 2000 offline steps (BC + CQL) \\
+Training & 200 online episodes per seed; final checkpoint evaluated \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \begin{algorithm}[t]
 \caption{One tick of the guarded control loop (20\,s)}\label{alg:loop}
 \small
