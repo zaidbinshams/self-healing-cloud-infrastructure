@@ -1,6 +1,6 @@
 # 06 — References and Related Work
 
-> Every reference below was **checked to exist** (title, authors, venue, year) on 13–14 Oct 2026. BibTeX keys are in `latex/refs.bib`. **SEAMS 2027 desk-rejects papers with fabricated or hallucinated references**, so before citing, each author opens the paper (or its DOI/publisher page) and confirms the entry, completing any field marked `VERIFY` in `refs.bib`. Cite only what you have opened. Do not add references from memory.
+> Every reference below was **checked to exist** (title, authors, venue, year) on 13–14 Oct 2026. BibTeX keys are in `latex/refs.bib`. **Venues desk-reject papers with fabricated or wrong references**, so before citing, each author opens the paper (or its DOI/publisher page) and confirms the entry, completing any field marked `VERIFY` in `refs.bib`. Cite only what you have opened. Do not add references from memory.
 
 ## How to use this file
 

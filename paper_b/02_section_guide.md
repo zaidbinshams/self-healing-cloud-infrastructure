@@ -1,6 +1,6 @@
 # 02 — Section-by-Section Guide
 
-> For each section: purpose, length, the content to cover (as facts), figures/tables, numbers (IDs from `05_numbers.md`), pitfalls. **Write all text yourselves.** Page budget: 6 pages of content in IEEE two-column (~4,500 words of text once figures and tables take their space); references go on the 7th page.
+> For each section: purpose, length, the content to cover (as facts), figures/tables, numbers (IDs from `05_numbers.md`), pitfalls. **Write all text yourselves.** Page budget: 7 pages in total, IEEE two-column: about 6 pages of content (~4,500 words of text once figures and tables take their space) and references on the last page.
 
 ---
 
@@ -11,7 +11,7 @@ Content points: `01_story_and_claims.md`, "Abstract content points". Quote at mo
 
 ## §1 Introduction (~0.75 page, 4–5 paragraphs)
 
-**Purpose:** convince a SEAMS reviewer that the Monitor stage's *measurement design* is a real problem for self-healing systems, and state RQs and contributions.
+**Purpose:** convince a reviewer in self-adaptive / self-healing systems that the Monitor stage's *measurement design* is a real problem for self-healing systems, and state RQs and contributions.
 
 | Paragraph | Content to cover | Cite |
 |---|---|---|

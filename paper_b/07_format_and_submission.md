@@ -1,20 +1,17 @@
 # 07 — Format, Template, Anonymization, AI Statement, Submission
 
-## Venue facts (checked on the official call, 13 Oct 2026; re-check a week before submitting)
+## Venue
 
-Source: <https://conf.researchr.org/track/seams-2027/seams-2027-research-track>
+Not chosen yet; the guide picks it. Until then the paper follows:
 
-| Item | Requirement |
+| Item | Working rule |
 |---|---|
-| Track | SEAMS 2027 Research Track, **short paper**: "ongoing research, new research ideas, or preliminary results without a mature evaluation" |
-| Length | **6 pages of content + 1 page of references** (figures and tables count as content) |
-| Template | **IEEE conference proceedings template**: LaTeX `IEEEtran`, class options `conference`, 10 pt, **no** compsoc options |
-| Review | **double-anonymous**: no author names or affiliations; refer to your own prior work in the third person; no identifying links or acknowledgments |
-| Deadline | **23 October 2026, AoE (UTC−12)**; one round |
-| Submission site | HotCRP: <https://seams27.hotcrp.com/> |
-| Later dates | notification 3 Dec 2026; revisions due 5 Jan 2027; decision on revisions 15 Jan 2027; camera-ready 29 Jan 2027; conference 26–27 Apr 2027, Dublin (with ICSE 2027) |
-| AI policy | IEEE: AI-generated **text** must be disclosed in the acknowledgments, citing the AI system used; ACM: AI tools cannot be authors; editing-only use needs no disclosure; **fabricated or hallucinated references → desk reject** |
-| Artifacts | optional; may go to the artifact track (availability, reusability, reproducibility) |
+| Length | **≤ 7 pages including references** (the guide's limit); figures and tables count |
+| Template | IEEE conference proceedings template: LaTeX `IEEEtran`, class options `conference`, 10 pt |
+| Review | unknown. Keep the anonymous author block until the venue is known; if it is single-blind, put names in |
+| AI policy | IEEE: AI-generated **text** must be disclosed in the acknowledgments, naming the AI system; AI tools cannot be authors; fabricated or wrong references are grounds for desk rejection at most venues |
+
+When the venue is known, add its page limit, review type, deadline, submission site and artifact rules here, and re-check the template.
 
 ## Getting the template
 
@@ -31,10 +28,10 @@ Source: <https://conf.researchr.org/track/seams-2027/seams-2027-research-track>
 - **Units:** a thin space before units (`70\,ms`), consistent "ms" and "s".
 - **Citations:** `\cite{key}` with IEEEtran numeric style; cite as references, not as nouns ("as shown in [3]", not "[3] shows").
 - **Abbreviations** defined at first use (SLA, SLO, MAPE-K, CV, RTT, CPU, K8s).
-- **Page check:** content ends on page 6; references only on page 7.
+- **Page check:** the whole paper, references included, fits in 7 pages (until the venue sets its own limit).
 - **Delete** the temporary `\nocite{*}` before submitting.
 
-## Anonymization checklist (review version)
+## Anonymization checklist (only if the venue is double-blind)
 
 - [ ] Author block reads "Anonymous Author(s)" / "Anonymous Institution" (already in the skeleton).
 - [ ] No names, university, city, course, guide, or capstone mentions anywhere (text, figures, PDF metadata).
@@ -53,7 +50,7 @@ Place it in the Acknowledgment section (anonymous wording such as "The authors�
 
 Do not overstate or understate. If you later use a grammar tool, editing-only use does not require disclosure (per the call); disclose anything beyond that.
 
-## Artifact (optional but recommended for SEAMS)
+## Artifact (optional, recommended)
 
 What goes in (prepared by the project lead on request):
 - the analysis and figure scripts (`eval/paperb_*.py`);
@@ -63,14 +60,9 @@ What goes in (prepared by the project lead on request):
 
 Link it in the paper as an anonymized URL in a footnote or the Conclusion.
 
-## Submission steps (HotCRP)
+## Submission steps
 
-1. One author creates an account on <https://seams27.hotcrp.com/>. Register the paper early (title, abstract, authors), even before the PDF is final.
-2. Select the research track and the **short paper** category; choose topics (self-healing; monitoring/runtime models; ML/RL for adaptation; cloud/fog/edge).
-3. Declare conflicts of interest as the form asks.
-4. Upload the anonymized PDF (≤ 6 + 1 pages). Check the HotCRP page-count/format report.
-5. Re-download the uploaded PDF and check fonts, figures and anonymity.
-6. Submit before **23 Oct 2026, 23:59 AoE** (that is 24 Oct, 17:29 in India).
+Depend on the venue (submission system, categories, conflict declaration). Add them here once the guide names it. In every case: register early, upload the PDF, re-download it and check fonts, figures and (if required) anonymity.
 
 ## Final checklist before submitting
 
@@ -80,5 +72,5 @@ Link it in the paper as an anonymized URL in a footnote or the Conclusion.
 - [ ] No claims from the "must NOT claim" list in `01_story_and_claims.md`.
 - [ ] The server-side p95 is stated as the SLA signal; client-side p99 also reported.
 - [ ] Threats section mentions: single application/node/link, closed-loop load, the capture disturbance, F2 one-worker marginal, cluster retuning before the reported runs.
-- [ ] 6 + 1 pages; IEEE template unmodified; anonymous; AI statement present.
+- [ ] Within the page limit; IEEE template unmodified; anonymous if the venue requires it; AI statement present.
 - [ ] Fact-check pass done (send the draft to the project lead to be checked against the data).
