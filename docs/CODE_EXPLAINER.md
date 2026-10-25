@@ -1,6 +1,6 @@
 # Code Explainer
 
-This document walks through the source code folder by folder. For each major file it shows the most important lines, copied from the source, and explains what they do and why they are written that way. `docs/PROJECT_EXPLAINER.md` covers the ideas (problem, design, results). This file covers the code.
+This document walks through the source code folder by folder. For each major file it shows the most important lines, copied from the source, and explains what they do and why they are written that way. `docs/PROJECT_EXPLAINER.md` covers the ideas (problem, design, results). This file covers the code. Setup, diagnostic and figure scripts that are not explained here are listed, one line each, in `docs/REPO_GUIDE.md`.
 
 Line numbers drift as code changes, so snippets are identified by function name. Search for the name (`def step`, `def masked_policy`) to find the full code.
 

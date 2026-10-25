@@ -1,5 +1,7 @@
 # Plan of Action — Papers A & B (agreed 2026-10-10)
 
+> **Status 25 Oct 2026 (the plan below is kept as agreed).** All experiments are done; what was run and what was not is in `docs/PREREGISTRATION.md` §9 (not run: seed 2, the uniform-replay ablation, the cold-start extension). Paper B no longer targets SEAMS 2027: the venue is chosen by the guide (`paper_b/README.md`). The writing packages are `paper_a/` and `paper_b/`.
+
 > Working plan for turning the capstone into publications. Technical rules stay in `CLAUDE.md`; milestones and gates in `PLAN.md`. **All paper prose is written by the authors** (no generative-AI text); Claude Code writes code, runs the cluster (asking first), and provides analysis, figures, outlines and related-work notes.
 
 ## 1. Goals and deliverables

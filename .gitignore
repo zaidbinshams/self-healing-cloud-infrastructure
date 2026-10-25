@@ -15,3 +15,6 @@ data/eval/
 .vscode/
 .idea/
 *.swp
+
+# Windows download markers (copying files into WSL)
+*:Zone.Identifier

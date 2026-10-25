@@ -10,7 +10,7 @@ Fixed policy → colour mapping (colour follows the policy in every figure), val
     a5_seed1.pdf         median MTTR, main block vs seed-1 block: PER-SAC seed 0 → 1, runbook main → anchor
 
 Usage:  python -m eval.plots --analysis data/eval/analysis.json --main data/eval/main \\
-            [--edge data/eval/edge] [--train sac_per=data/m4/sac_per_s0 ...] [--out figures/paperA]
+            [--edge data/eval/edge] [--train sac_per=data/m4/sac_per_s0 ...] [--out paper_a/latex/figures]
 """
 
 from __future__ import annotations
@@ -190,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--main", type=Path, required=True)
     ap.add_argument("--train", action="append", default=[])
     ap.add_argument("--censor-s", type=float, default=360.0)
-    ap.add_argument("--out", type=Path, default=REPO_ROOT / "figures" / "paperA")
+    ap.add_argument("--out", type=Path, default=REPO_ROOT / "paper_a" / "latex" / "figures")
     args = ap.parse_args(argv)
     analysis = json.loads(args.analysis.read_text())
     rows, _ = final_valid(read_rows(args.main / "episodes.jsonl"))

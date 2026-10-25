@@ -6,6 +6,8 @@ An agent observes a microservice application (Google's Online Boutique on K3s) e
 
 The agent is a masked discrete Soft Actor-Critic with prioritized experience replay. It is warm-started from runbook demonstrations using behaviour cloning and a conservative (CQL) critic. It is compared with default Kubernetes, Kubernetes with a Horizontal Pod Autoscaler, and a scripted SRE runbook, under a protocol that was pre-registered before training (`docs/PREREGISTRATION.md`).
 
+**Status (25 Oct 2026):** all experiments are complete; the two papers and the final review are in progress. **New to the repository? Start with [`docs/REPO_GUIDE.md`](docs/REPO_GUIDE.md)**: what every folder holds, why, and how the team uses it.
+
 ## Results
 
 Main evaluation: 50 scheduled episodes per policy (10 for each of four fault types, plus 10 without a fault). MTTR is the median over fault episodes; episodes that did not recover count as 360 s.
@@ -40,12 +42,20 @@ Full results with confidence intervals, test statistics and per-episode data are
 | `chaos/`, `locust/` | Chaos Mesh install and smoke tests; load generator |
 | `scripts/` | Preflight checks, calibration, fault smoke tests, session start, watchdog, experiment chains |
 | `tests/` | Unit tests for the pure logic (no cluster needed) |
-| `docs/` | Pre-registration with all amendments, plan of action |
+| `docs/` | Repository guide, project and code explainers, review Q&A, pre-registration with all amendments, plan of action |
+| `reports/` | Milestone reports (M1, M2) and the rolling project log |
 | `paper_a/`, `paper_b/` | Writing packages for the two papers: numbers, figure data, LaTeX skeletons, references |
 | `presentation/` | Slide figures R01–R17 for the final review, their script, and a slide-by-slide guide |
-| `figures/` | Generated figures |
+| `figures/` | `analysis.json` for each paper: the full machine-readable results behind every number |
+| `data/` | Not in the repository (gitignored): raw episode logs, checkpoints and diagnostics, on Machine B only |
 
-`docs/PROJECT_EXPLAINER.md` explains the whole project in one document (design, formulas, decisions, results, how to read the code, how to present it). `docs/FINAL_REVIEW_QA.md` collects the questions to expect at a review, with detailed answers. `docs/CODE_EXPLAINER.md` walks through the source folder by folder, with the key lines of each file and why they are written that way. `CLAUDE.md` is the technical specification: the tick protocol, observation and action definitions, PromQL queries, imputation rules and safety constraints. `PLAN.md` lists the milestones and their validation gates.
+Documents:
+- `docs/REPO_GUIDE.md`: the map of the repository and the team's workflows.
+- `docs/PROJECT_EXPLAINER.md`: the whole project in one document (design, formulas, decisions, results, how to present it).
+- `docs/CODE_EXPLAINER.md`: the source folder by folder, with the key lines of each file and why they are written that way.
+- `docs/FINAL_REVIEW_QA.md`: the questions to expect at a review, with detailed answers.
+- `CLAUDE.md`: the technical specification (tick protocol, observation and action definitions, PromQL queries, imputation rules, safety constraints).
+- `PLAN.md`: the milestones and their validation gates, as originally planned.
 
 ## Requirements
 

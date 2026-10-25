@@ -38,9 +38,9 @@
 |---|---|---|---|
 | **M1** Cluster Baseline | two-machine topology, least-privilege RBAC, golden state, clock sync | ✅ Done (2026-10-01; re-validated 2026-10-02) | `preflight m1` 18/18 |
 | **M2** Telemetry & Adversary | Prometheus, Locust `/tick`, Chaos Mesh, telemetry freshness, limit tuning | ✅ Done (2026-10-02) | `preflight m2` 15/15; smoke test throttle 0.035 → 0.52 at 15 s → 1.0 |
-| **M3** Scripted Runbook & Gym Bridge | real-cluster Gymnasium env, injector, `reset()`, calibration, gates G1–G7, warm-start data | ⏭ Next | — |
-| **M4** PER-iSAC Integration | masked discrete SAC + PER, offline warm-start, online training | Planned | — |
-| Later | evaluation against baselines, ablations, figures | Planned | — |
+| **M3** Scripted Runbook & Gym Bridge | real-cluster Gymnasium env, injector, `reset()`, calibration, gates G1–G7, warm-start data | ✅ Done (gate review 2026-10-13) | G1–G4, G7 pass; G5, G6 failed only through one network outage, reviewed, thresholds unchanged (below) |
+| **M4** PER-iSAC Integration | masked discrete SAC + PER, offline warm-start, online training | ✅ Done | sac_per_s0 200, sac_per_cold_s0 100, sac_per_s1 200 episodes (`docs/PREREGISTRATION.md` Amendments 6–8, §9) |
+| **M5** Evaluation | pre-registered evaluation against the baselines, edge subset, seed-1 replication | ✅ Done (2026-10-25) | main 24 Oct, edge 24 Oct, seed-1 25 Oct (`docs/PREREGISTRATION.md` §9); not run: seed 2, uniform-replay ablation |
 
 ---
 
@@ -206,4 +206,9 @@ Runbook validation (20 episodes, ε = 0, `data/m3/runbook_eval`, gates in `gates
 
 Implications: the ε = 0 evaluation is unaffected (validation F1 5/5). For Paper A's discussion, rule-based remediation depends on change attribution, which concurrent changes defeat. For training, SAC's own lead-in exploration can invalidate F2 episodes the same way (~2 %); this is logged, not acted on.
 
-*(Append the M3 summary here when its exit gate passes.)*
+### Project completion (2026-10-25)
+
+This log was kept up to the start of M4 training. The rest is recorded in one place each, so it is not repeated here:
+- Training attempts, Amendments 6–8 and the completion report: `docs/PREREGISTRATION.md` §8–9.
+- Every result with its source: `paper_a/05_numbers.md` (Paper A) and `paper_b/05_numbers.md` (Paper B).
+- The whole project in one narrative: `docs/PROJECT_EXPLAINER.md`.

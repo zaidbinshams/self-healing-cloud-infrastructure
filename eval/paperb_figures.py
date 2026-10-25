@@ -3,7 +3,7 @@
 Palette: the first three validated categorical slots (all-pairs CVD-safe), marker shapes as secondary
 encoding, direct labels on every series, recessive grid, one y-axis per panel.
 
-Usage:  python -m eval.paperb_analysis && python -m eval.paperb_figures [--out figures/paperB]
+Usage:  python -m eval.paperb_analysis && python -m eval.paperb_figures [--out paper_b/latex/figures]
 """
 
 from __future__ import annotations
@@ -133,7 +133,7 @@ def fig_detectability(a: dict, out: Path) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--analysis", type=Path, default=DATA / "paperB" / "analysis.json")
-    ap.add_argument("--out", type=Path, default=REPO_ROOT / "figures" / "paperB")
+    ap.add_argument("--out", type=Path, default=REPO_ROOT / "paper_b" / "latex" / "figures")
     args = ap.parse_args(argv)
     a = json.loads(args.analysis.read_text())
     args.out.mkdir(parents=True, exist_ok=True)

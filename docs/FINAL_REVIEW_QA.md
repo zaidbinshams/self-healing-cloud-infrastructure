@@ -901,7 +901,8 @@ Know these before an examiner points at them.
 
 | What they may see | The answer |
 |---|---|
-| `docs/CAPSTONE_DEFENSE_NOTES.md` says the SLA is client p99, 40 users, HPA at 70 % CPU | Historical notes from 2 Oct (M3 in progress); marked as superseded at the top. The final values: server-side p95, 30 users, HPA AverageValue at 60 % of each pod's CPU limit (Amendment 3, `k8s/hpa/hpa-baseline.yaml`) |
+| Paper B's measurement runs use 40–50 users, but the experiments use 30 | Paper B's runs (U40, U50) were the diagnosis before calibration; U_base = 30 was calibrated afterwards (`config/calibration.json`). Final values: server-side p95 SLA, 30 users, HPA AverageValue at 60 % of each pod's CPU limit (Amendment 3, `k8s/hpa/hpa-baseline.yaml`) |
+| `CLAUDE.md` §3 and `PLAN.md` name files that do not exist (`agents/probe.py`, `config/runs/*.yaml`, `tests/test_masked_sac.py`, `tests/test_per_buffer.py`, `scripts/run_eval_interleaved.py`) | They show the layout as designed. As built: greedy probes are part of `agents/train.py` (`--probe-every`); the one run setting is `config/runs/edge_degraded.env`; SAC and PER tests are in `tests/test_sac_per.py`; interleaving is in `eval/run_eval.py`. The as-built map is `docs/REPO_GUIDE.md` |
 | `PLAN.md` mentions Tianshou, 10 policies, 3 seeds, HPA "70% CPU" | The original plan. Changes are recorded in `CLAUDE.md` (in-house SAC, 10 Oct) and `docs/PREREGISTRATION.md` (HPA definition, seeds, amendments). See §2 above |
 | `CLAUDE.md` §5.1 shows `golden_overrides: {}` and `l_sla_factor` comments | That block is the *initial* content; the live values are in `config/contract.yaml`, and the tuning table in `CLAUDE.md` §2 lists every override |
 | The agent is called "PER-iSAC" in some files and "PER-SAC" in others | Same agent. "PER-iSAC" was the working name; the papers use PER-SAC |
@@ -910,7 +911,7 @@ Know these before an examiner points at them.
 | Amendment 8 after the main evaluation | See F1: a replication, written before its data, confirmatory tests unchanged |
 | Gates G5 and G6 failed in validation | See F9: one documented outage, reviewed, thresholds unchanged |
 | "No uniform ablation, yet it is called PER-SAC" | See A2: PER is part of the design; no claim that it helped |
-| `docs/paperA_methods_pack.md`, `docs/paperB_outline.md`, `docs/paperB_results.md` | Working files the paper packs were built from; the packs in `paper_a/` and `paper_b/` are current |
+| Early notes and working files mentioned in old commits (`docs/CAPSTONE_DEFENSE_NOTES.md`, `docs/paperA_methods_pack.md`, `docs/paperB_outline.md`, `docs/paperB_results.md`) | Removed on 25 Oct after the paper packs and this document replaced them (every number was checked to be in the packs). They remain in the git history |
 
 ---
 

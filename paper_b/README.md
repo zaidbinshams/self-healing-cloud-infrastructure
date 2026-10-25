@@ -21,7 +21,7 @@ A self-healing controller (runbook or RL agent) watches an SLA latency signal an
 | `05_numbers.md` | **every number you may quote**, with an ID, meaning and source | quoting results correctly |
 | `06_references.md` | verified related work: what each paper does, where to cite it, how we differ | Related Work + citations |
 | `07_format_and_submission.md` | template sources, IEEE rules, anonymization (if the venue is double-blind), AI disclosure, artifact, final checklist | formatting and submitting |
-| `latex/` | `main.tex` skeleton (compiles; headings, figure/table slots, numbers already in tables), `refs.bib` (verified), `figures/` (b1–b4 as vector PDF), `skeleton_preview.pdf` | the actual paper |
+| `latex/` | `main.tex` skeleton (compiles; headings, figure/table slots, numbers already in tables), `refs.bib` (verified), `figures/` (b1–b4 as vector PDF and PNG) | the actual paper |
 | `08_making_figures.md` + `make_figures.py` | **how to draw every figure yourselves** from the CSVs (one command, or recipes for other tools), numbering and labels, checks against the numbers, using the figures on slides | making your own figures and slides |
 | `figure_data/` | raw CSV data behind every figure and table | redrawing figures in any tool, checking numbers |
 | `slides/` | the four figures as 600-dpi PNGs for presentations | slides |
@@ -63,7 +63,7 @@ All data and figures are generated from recorded testbed data by scripts. Never 
 
 ```
 python -m eval.paperb_analysis    # recompute all analyses → data/paperB/analysis.json (copy to figures/paperB/)
-python -m eval.paperb_figures     # redraw b1–b4 (figures/paperB/*.pdf)
+python -m eval.paperb_figures     # redraw b1–b4 (paper_b/latex/figures/)
 python -m eval.paperb_export      # refresh paper_b/figure_data/*.csv
 ```
 

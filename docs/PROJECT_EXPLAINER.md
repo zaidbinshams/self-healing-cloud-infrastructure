@@ -399,7 +399,7 @@ The agent rediscovered the runbook's cure for each fault without being told whic
 - **Edge (netem):** the agent recovered 14/16 and the runbook 15/16, and median times barely moved. Decision latency rose from 0.33 s to 1.44 s.
 - **Seed 1:** 35/40 recovered, non-inferior to the runbook within its block (CI −0.7 to +19.9 s), 0/10 fault-free actions. The runbook anchor matched the main block (37 vs 38/40; pooled medians 79.7 vs 79.6 s), so the cluster did not drift.
 
-All numbers, with sources: `paper_a/05_numbers.md`. Figures: `figures/paperA/` and `paper_a/latex/figures/`.
+All numbers, with sources: `paper_a/05_numbers.md`. Figures: `paper_a/latex/figures/` (paper) and `presentation/figures/` (slides).
 
 ---
 
@@ -550,7 +550,7 @@ Ready-made figures for these slides (R01–R17), with a suggested title and talk
 
 - Walk through the repo and one recorded episode's transitions (`paper_a/figure_data/episodes_main.csv` for the summary).
 - If built: a replay dashboard of recorded episodes (latency over time, fault injection, the action taken, recovery).
-- `pytest -q` running about 200 unit tests in a few seconds shows the engineering quality without needing the cluster.
+- `pytest -q` running 196 unit tests in about 10 seconds shows the engineering quality without needing the cluster.
 
 ### Questions to expect, and short answers
 
