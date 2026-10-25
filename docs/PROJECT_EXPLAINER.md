@@ -552,6 +552,8 @@ Git history (`git log --oneline`) shows how the project developed; amendment com
 
 ### Questions to expect, and short answers
 
+Short versions below. Detailed answers, with evidence and follow-ups, for every area an external examiner may cover: `docs/FINAL_REVIEW_QA.md`.
+
 - **Why not a simulator?** The point is real behaviour (rollout times, metric delays, network loss). Simulators hide exactly the effects that made this hard.
 - **Isn't the runbook better? It recovered 38 vs 35.** On MTTR the two are statistically equivalent within one tick. The runbook was written knowing the faults; the agent was not told them. The agent's 5 misses are one fault/target pair, explained by the exploration trade-off.
 - **Why did HPA win on F4?** It reacts to CPU directly and does not wait for two unhealthy ticks, so it scales sooner. It cannot fix any other fault (0/30).

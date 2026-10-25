@@ -1,5 +1,7 @@
 # Capstone Defense Notes — Self-Healing Microservices with Masked Discrete SAC (PER-iSAC) on K3s
 
+> **Superseded (historical notes from 2 Oct 2026, M3 in progress).** Several values here changed later: the SLA signal is the server-side p95 (not client p99), U_base is 30 users (not 40), L_SLA is 70 ms, and the HPA baseline uses AverageValue at 60 % of each pod's CPU limit. For the final project use `docs/PROJECT_EXPLAINER.md`, `docs/FINAL_REVIEW_QA.md` and `docs/PREREGISTRATION.md`.
+
 > **Purpose.** Backbone for the defense presentation and a future paper. Every number here comes from a commit, a preflight run, or a file under `data/diag/` (git-ignored raw data; the scripts that produce it are committed). Claims are separated into **established**, **in progress**, and **planned**. Status as of **2026-10-02**, M3 in progress.
 >
 > **Sources of truth:** `CLAUDE.md` (technical contract), `PLAN.md` (milestones), `config/contract.yaml` (locked numbers), `reports/m1_report.md`, `reports/m2_report.md`, `reports/rolling_project_log.md`.
