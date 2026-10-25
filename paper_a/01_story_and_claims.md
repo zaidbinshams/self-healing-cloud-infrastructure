@@ -38,7 +38,7 @@
 | Claim | Evidence |
 |---|---|
 | Learned online on the live cluster, with no simulator or digital twin | method; 200 training episodes per seed on the real cluster [N28] |
-| Beats default Kubernetes on all fault types and HPA on F1–F3 | Table II; H1 p_Holm ≤ 0.03 [N8] |
+| Beats default Kubernetes on all fault types and HPA on F1–F3 | Table III; H1 p_Holm ≤ 0.03 [N8] |
 | MTTR non-inferior to a scripted runbook | H2 CI [N10]; replicated on seed 1 [N25] |
 | Safe in fault-free periods and under the guarded interface | H4 [N14, N15, N17] |
 | Runbook warm start is necessary in this setting | H3 [N18, N19]; cold-start behaviour [N4, N16] |

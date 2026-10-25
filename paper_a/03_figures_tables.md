@@ -10,7 +10,7 @@
 ## Table I — Faults (in `main.tex`)
 - Severities, targets, cure conditions and curing actions from the contract. The curing-action column is the pre-registered outcome grid (documentation only; the agent never sees it).
 
-## Table II — Main evaluation (in `main.tex`; data `summary_main.csv`)
+## Table III — Main evaluation (in `main.tex`; data `summary_main.csv`)
 - 5 policies × (recovered per fault, censored median MTTR per fault, pooled, mean SLA penalty, actions per fault episode, NULL with action).
 - **How to read:** censored medians make a policy that misses half the episodes look like 240–360 s; the bracketed "recovered only" medians show speed when it does recover. Say both.
 - **What to say:** Kubernetes cures nothing (no controller reacts to these faults); HPA only F4; the warm agent matches the runbook's coverage except F2-curr and is a tick faster on F1/F4.
@@ -42,12 +42,12 @@
 ## Fig. 6 (optional) — Seed 1 (`a5_seed1.pdf`; data `summary_seed1.csv`, `summary_main.csv`)
 - **Shows:** per-fault median MTTR, hollow = main block (PER-SAC seed 0, runbook), filled = seed-1 block (PER-SAC seed 1, runbook anchor).
 - **Say:** the runbook anchor moves by at most one tick (20 s) per fault (F2 89 → 99, F3 50 → 60, F4 80 → 60 s), and pooled it does not move (p = 0.70), so there is no drift between days. Seed 1 vs seed 0: F1 90 vs 59 s, F4 79 vs 60 s, F3 60 vs 60 s, F2 230 vs 240 s.
-- Drop this figure first if the paper is over 7 pages (Table VI carries the replication).
+- Drop this figure first if the paper is over 7 pages (Table V carries the replication).
 
-## Table VI — Seed-1 replication (in `main.tex`; data `summary_seed1.csv`, `tests.csv` rows `seed1-*`)
+## Table V — Seed-1 replication (in `main.tex`; data `summary_seed1.csv`, `tests.csv` rows `seed1-*`)
 - Main block (runbook, seed 0) vs seed-1 block (runbook anchor, seed 1): recovered, median MTTR, recovered-only median, NULL with action, H2 CI.
 
-## Table VII — Hypotheses and outcomes (in `main.tex`; data `tests.csv`)
+## Table VI — Hypotheses and outcomes (in `main.tex`; data `tests.csv`)
 - One row per H1–H5 with the decisive statistic. H1 and H5 carry the bold "not" parts; keep them bold or otherwise visible.
 
 ## Regenerating (project lead, on Machine B)

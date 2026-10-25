@@ -17,7 +17,7 @@
 
 ## Final checklist
 - [ ] Every number in the text matches `05_numbers.md` (one person reads the whole paper against it).
-- [ ] The H1 F4 result (HPA faster) and H5 (not established) are stated plainly, in the Results and in Table VII.
+- [ ] The H1 F4 result (HPA faster) and H5 (not established) are stated plainly, in the Results and in Table VI.
 - [ ] Claims stay inside "What we may claim" (`01_story_and_claims.md`).
 - [ ] The limitations paragraph covers every item in the `01` list.
 - [ ] The pre-registration and its 8 amendments are mentioned, with dates in the artefact.

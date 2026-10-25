@@ -2,7 +2,7 @@
 
 > For every section: purpose, page budget, paragraph-level points in order, which figure/table, which numbers (IDs from `05_numbers.md`). Points are not prose. **Write your own sentences.**
 
-Page budget (7 pages including references): I 0.8 · II 0.5 · III 0.8 · IV 1.3 · V 0.7 · VI 2.0 · VII 0.6 · VIII 0.2 · refs 0.5 (~25 entries; drop the uncited ones when `\nocite{*}` is removed). If over budget, move Fig. 6 (seed 1, `a5_seed1.pdf`) out first (Table VI carries the replication), then shorten Section II.
+Page budget (7 pages including references): I 0.8 · II 0.5 · III 0.8 · IV 1.3 · V 0.7 · VI 2.0 · VII 0.6 · VIII 0.2 · refs 0.5 (~25 entries; drop the uncited ones when `\nocite{*}` is removed). If over budget, move Fig. 6 (seed 1, `a5_seed1.pdf`) out first (Table V carries the replication), then shorten Section II.
 
 ---
 
@@ -30,7 +30,7 @@ Points are in `01_story_and_claims.md`. Include 4 numbers at most: 35/40, 0/40 &
 4. **Faults.** Table I: injection, cure condition, curing action. One sentence on why these four (bad config, hot pod, lost replicas, load surge).
 5. **Loop and guards.** 20 s tick, 3 s collection deadline, asynchronous dispatch, one action in flight, least-privilege credentials (agent cannot delete pods or touch other namespaces), replica bounds enforced twice.
 
-## IV. Remediation as a Masked MDP (≈ 1.3 pages; Eqs. 1–12, Algorithm 1)
+## IV. Remediation as a Masked MDP (≈ 1.3 pages; Eqs. 1–12, Table II hyper-parameters, Algorithm 1)
 1. **Observation** (Eq. 1 for latency; describe the other 35 features in one sentence each by group). No ground truth.
 2. **Actions and mask** (Eq. 2). Lock rule. RESTORE is never masked by drift (would leak the fault).
 3. **Reward** (Eqs. 3–5): SLA violation + action cost + replica cost; no MTTR shaping. **Health and recovery**, MTTR (Eq. 6).
@@ -42,7 +42,7 @@ Points are in `01_story_and_claims.md`. Include 4 numbers at most: 35/40, 0/40 &
 6. **Warm start.** 120 runbook episodes with ε = 0.25, 2000 offline steps (~9 s). Then 200 online episodes, 4 gradient steps per tick. A stale next state is never stored.
 7. Algorithm 1: one tick (refer to it, don't re-describe it).
 
-## V. Experimental Design (≈ 0.7 page; Table VII hypotheses can sit here or in VI)
+## V. Experimental Design (≈ 0.7 page; Table VI hypotheses can sit here or in VI)
 1. **Baselines:**
    - Kubernetes default (its own controllers only);
    - Kubernetes + HPA (CPU AverageValue 60 % of limit; min = base, max = agent bounds);
@@ -60,16 +60,16 @@ Points are in `01_story_and_claims.md`. Include 4 numbers at most: 35/40, 0/40 &
    - Mann–Whitney + Holm per family, Cliff's δ, 10 000-resample bootstrap CIs, Kaplan–Meier + log-rank;
    - non-inferiority margin 20 s (one tick).
 
-## VI. Results (≈ 2 pages; Tables II–VII, Figs. 2–5 (6))
+## VI. Results (≈ 2 pages; Tables II–VI, Figs. 2–5 (6))
 Order and what to say (`03_figures_tables.md` has the details):
-1. **Overall recovery and MTTR** (Table II, Fig. 2): 35/40 vs 0/40 and 10/40 [N1–N3]; log-rank [N19b]. H1 per fault [N8]. Then the honest F4 point: HPA is faster on F4 [N9].
-2. **Against the runbook** (Table II, Fig. 3): pooled non-inferiority [N10]; per fault faster on F1/F4, slower on F3, F2 split by target [N5, N7]. SLA penalty tie [N11].
+1. **Overall recovery and MTTR** (Table III, Fig. 2): 35/40 vs 0/40 and 10/40 [N1–N3]; log-rank [N19b]. H1 per fault [N8]. Then the honest F4 point: HPA is faster on F4 [N9].
+2. **Against the runbook** (Table III, Fig. 3): pooled non-inferiority [N10]; per fault faster on F1/F4, slower on F3, F2 split by target [N5, N7]. SLA penalty tie [N11].
 3. **What the agent learned** (Table IV): its actions match the runbook's cure per fault; F2-curr never acted on. Cold agent: repeated RESTORE cartservice.
 4. **Warm vs cold** (Fig. 4, H3): return [N18], evaluation MTTR [N19], cold FRR [N16].
 5. **Safety** (H4): 0/10, 0/30, 0 violations [N14, N15, N17]; decision latency [N22].
 6. **Edge** (Fig. 5, H5): medians and recoveries [N20, N21]; latency rise [N23]; H5 not established, and why (n = 16).
-7. **Seed 1** (Table VI, optional Fig. 6): 35/40, H2 holds within block [N24, N25]; anchor shows no drift [N26]; same blind spot.
-8. **Summary** (Table VII): hypothesis → outcome.
+7. **Seed 1** (Table V, optional Fig. 6): 35/40, H2 holds within block [N24, N25]; anchor shows no drift [N26]; same blind spot.
+8. **Summary** (Table VI): hypothesis → outcome.
 
 ## VII. Discussion and Limitations (≈ 0.6 page)
 Use "What the results mean" and "Limitations" in `01_story_and_claims.md`. Suggested order:
