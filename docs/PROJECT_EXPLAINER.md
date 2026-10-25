@@ -530,6 +530,8 @@ Git history (`git log --oneline`) shows how the project developed; amendment com
 
 ### A 15-minute talk (one slide per bullet)
 
+Ready-made figures for these slides (R01–R17), with a suggested title and talking points for each: `presentation/README.md`.
+
 1. **Title:** one sentence: online RL remediation on a live cluster.
 2. **Problem:** faults, MTTR, runbooks are manual, Kubernetes heals little. Show the fault table.
 3. **Question and setting:** live cluster, discrete actions, safety, Wi-Fi edge link. Show the architecture diagram (§3).

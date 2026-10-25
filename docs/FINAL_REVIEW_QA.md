@@ -885,6 +885,7 @@ Bringing the testbed back up live is possible but takes setup time (`README.md`,
 
 ### L4. Presentation tips
 
+- Slide figures R01–R17, a suggested slide order, slide titles, talking points and check-values: `presentation/README.md`.
 - One message per slide. Lead with the result table and the Kaplan–Meier figure.
 - Show the architecture diagram early (`docs/PROJECT_EXPLAINER.md` §3).
 - Give one formula at most on a slide (the masked softmax or the reward), with a sentence of intuition.

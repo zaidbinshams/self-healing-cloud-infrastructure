@@ -42,6 +42,7 @@ Full results with confidence intervals, test statistics and per-episode data are
 | `tests/` | Unit tests for the pure logic (no cluster needed) |
 | `docs/` | Pre-registration with all amendments, plan of action |
 | `paper_a/`, `paper_b/` | Writing packages for the two papers: numbers, figure data, LaTeX skeletons, references |
+| `presentation/` | Slide figures R01–R17 for the final review, their script, and a slide-by-slide guide |
 | `figures/` | Generated figures |
 
 `docs/PROJECT_EXPLAINER.md` explains the whole project in one document (design, formulas, decisions, results, how to read the code, how to present it). `docs/FINAL_REVIEW_QA.md` collects the questions to expect at a review, with detailed answers. `docs/CODE_EXPLAINER.md` walks through the source folder by folder, with the key lines of each file and why they are written that way. `CLAUDE.md` is the technical specification: the tick protocol, observation and action definitions, PromQL queries, imputation rules and safety constraints. `PLAN.md` lists the milestones and their validation gates.
@@ -124,6 +125,8 @@ The raw episode logs (`data/`) are not in the repository. The derived per-episod
 pip install matplotlib numpy
 python paper_a/make_figures.py
 ```
+
+The final-review slide figures are drawn the same way: `python presentation/make_review_figures.py` (guide: `presentation/README.md`).
 
 ## Tests
 
