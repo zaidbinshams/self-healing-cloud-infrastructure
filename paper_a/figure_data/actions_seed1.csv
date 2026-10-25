@@ -1,0 +1,19 @@
+policy,fault,target,executed_actions,episodes
+runbook,F1,productcatalogservice,RESTORE productcatalogservice,10
+runbook,F2,cartservice,RESTART cartservice,4
+runbook,F2,cartservice,none,1
+runbook,F2,currencyservice,RESTART currencyservice,3
+runbook,F2,currencyservice,none,2
+runbook,F3,cartservice,RESTORE cartservice,4
+runbook,F3,cartservice,RESTORE cartservice > RESTART cartservice,1
+runbook,F3,currencyservice,RESTORE currencyservice,5
+runbook,F4,frontend,SCALE_UP frontend > SCALE_UP frontend,10
+runbook,NULL,,none,10
+sac_per_s1,F1,productcatalogservice,RESTORE productcatalogservice,10
+sac_per_s1,F2,cartservice,RESTART cartservice,5
+sac_per_s1,F2,currencyservice,none,5
+sac_per_s1,F3,cartservice,RESTORE cartservice,5
+sac_per_s1,F3,currencyservice,RESTORE currencyservice,5
+sac_per_s1,F4,frontend,SCALE_UP frontend > SCALE_UP frontend,8
+sac_per_s1,F4,frontend,SCALE_UP frontend,2
+sac_per_s1,NULL,,none,10

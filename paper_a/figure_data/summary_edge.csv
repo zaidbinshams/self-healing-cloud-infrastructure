@@ -1,0 +1,13 @@
+policy,fault,n,recovered,mttr_median_censored_s,mttr_median_recovered_s,sla_penalty_mean,actions_mean,null_with_action
+runbook,F1,4,4,78.43,78.43,3.975,1.0,
+runbook,F2,4,3,178.3,98.17,0.118,0.75,
+runbook,F3,4,4,58.66,58.66,2.955,1.0,
+runbook,F4,4,4,68.58,68.58,1.045,1.5,
+runbook,NULL,4,,,,0.0,0.0,0
+runbook,F1-F4,16,15,78.55,78.53,2.023,1.062,
+sac_per,F1,4,4,98.54,98.54,4.5,1.25,
+sac_per,F2,4,2,229.3,88.32,0.4084,0.5,
+sac_per,F3,4,4,48.52,48.52,2.5,1.0,
+sac_per,F4,4,4,68.52,68.52,1.061,1.5,
+sac_per,NULL,4,,,,0.0,0.0,0
+sac_per,F1-F4,16,14,78.24,68.4,2.117,1.062,

@@ -180,3 +180,34 @@ Prometheus queries now reuse one keep-alive HTTP session (`cdc39a4`; library ret
   - sac_per seed 0 and seed 1 side by side (training curves and evaluation). No seed is dropped or replaced, whatever it shows.
 - **Time rule.** If B's availability ends before the seed-1 evaluation completes, the completed entries (schedule order) are reported and the shortfall stated; decided on time, never on results.
 - **Not run (limitations).** Seed 2, the uniform-replay ablation, the cold-start extension to 200 episodes (Amendment 7's optional extension, not taken), and the F2-currencyservice exploratory follow-up.
+
+## 9. Completion report — 2026-10-25 (after all data; reporting only, no change to design or analysis)
+
+- **What was run.**
+  - Training: sac_per_s0 200 episodes (attempt 5, Amendment 6); sac_per_cold_s0 100 episodes (Amendment 7); sac_per_s1 200 episodes (Amendment 8).
+  - Main evaluation `eval_v1_main`: 5 policies × 50 entries, complete 24 Oct 08:50.
+  - Edge subset `eval_v1_edge`: 2 policies × 20 entries under netem (+150 ms, 1 % loss; dry run 0/15 stale ticks, so loss was not reduced), complete 24 Oct 14:03.
+  - Seed-1 block `eval_v1_seed1`: 2 policies × 50 entries, complete 25 Oct 13:54.
+  - No pre-declared cut (§7) and no Amendment 8 time rule was needed.
+- **Analysis.** Exactly as in §5. The replication block is computed by `eval/analyze.py --seed1` as Amendment 8 specifies. Outputs: `data/eval/analysis.json` (copy in `figures/paperA/analysis.json`), CSVs in `paper_a/figure_data/`.
+- **Evaluation exclusions (re-run on the same entry, §6).**
+  - main: sac_per 1 and sac_per_cold 1 (Wi-Fi outages on 23 Oct, 07:03 and 21:53);
+  - edge: runbook 1 (entry 14, F3-currencyservice: the new pod's cAdvisor series was missing for 3 ticks after scale-from-zero);
+  - seed-1: none.
+- **Training episodes invalid by the stale rule.**
+  - sac_per_s0: 1 (ep. 52, F4).
+  - sac_per_s1: 5. Two were Wi-Fi drops (ep. 105, 145). Three were the F3-currencyservice measurement gap above (ep. 142, 166, 192).
+  - sac_per_cold_s0: 0.
+  - Interrupted episodes were re-run (§ Amendment 6 final-run rule).
+- **Operational events (no effect on design).**
+  - Operator pauses for network or power loss and planned pauses are logged in `data/logs/chain_m4.log`. Every resume ran the full session start (clock skew, steady check against the frozen calibration).
+  - On 24 Oct 08:51, the pause left HPA objects and a scaled-to-zero currencyservice from the last k8s_hpa episode. They were removed as `reset()` does, before the next episode.
+  - On 25 Oct, Machine A ran on battery from 09:32 to 10:21. The seed-1 evaluation was held between episodes (SIGSTOP after row 54) and resumed after 4 healthy check ticks (20–25 ms, 0 stale). The runbook episode of entry 26 (F3-currencyservice, MTTR 59 s) had started before the hold and ran partly on battery. It is valid by §6 and is kept.
+- **Outcomes against §1** (details in `paper_a/05_numbers.md`):
+  - **H1** supported for F1–F3 against both baselines and for F4 against default Kubernetes. **Not supported for F4 against HPA**: HPA had lower MTTR (Cliff's δ = −0.58, p_Holm = 0.031).
+  - **H2** MTTR non-inferiority supported (pooled 95 % CI of the median difference [−20.0, +0.9] s). The "lower cumulative SLA penalty" part is **not supported** (tie, p = 0.66).
+  - **H3** supported (return over episodes 1–100 p = 6.5×10⁻⁹; evaluation MTTR p = 4.4×10⁻⁵). The MTTR comparison carries Amendment 7's half-budget caveat.
+  - **H4** supported: 0/10 NULL episodes with an action, training FRR 0/30, 0 safety violations.
+  - **H5** **not established**: pooled CI upper bound 20.15 s against the 20 s margin (n = 16 per policy).
+  - **Seed-1 replication:** H2's rule holds within the block (CI [−0.7, +19.9] s), 0/10 NULL actions, and the runbook anchor shows no drift (pooled p = 0.70).
+- **Not run** (as stated in Amendment 8): seed 2, the uniform-replay ablation, the cold-start extension, and the F2-currencyservice exploratory follow-up.

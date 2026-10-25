@@ -1,0 +1,62 @@
+policy,fault,target,executed_actions,episodes
+k8s_default,F1,productcatalogservice,none,10
+k8s_default,F2,cartservice,none,5
+k8s_default,F2,currencyservice,none,5
+k8s_default,F3,cartservice,none,5
+k8s_default,F3,currencyservice,none,5
+k8s_default,F4,frontend,none,10
+k8s_default,NULL,,none,10
+k8s_hpa,F1,productcatalogservice,none,10
+k8s_hpa,F2,cartservice,none,5
+k8s_hpa,F2,currencyservice,none,5
+k8s_hpa,F3,cartservice,none,5
+k8s_hpa,F3,currencyservice,none,5
+k8s_hpa,F4,frontend,none,10
+k8s_hpa,NULL,,none,10
+runbook,F1,productcatalogservice,RESTORE productcatalogservice,10
+runbook,F2,cartservice,RESTART cartservice,5
+runbook,F2,currencyservice,RESTART currencyservice,3
+runbook,F2,currencyservice,none,2
+runbook,F3,cartservice,RESTORE cartservice,4
+runbook,F3,cartservice,RESTORE cartservice > RESTART cartservice,1
+runbook,F3,currencyservice,RESTORE currencyservice,5
+runbook,F4,frontend,SCALE_UP frontend > SCALE_UP frontend,10
+runbook,NULL,,none,10
+sac_per,F1,productcatalogservice,RESTORE productcatalogservice,8
+sac_per,F1,productcatalogservice,RESTORE productcatalogservice > RESTORE productcatalogservice,2
+sac_per,F2,cartservice,RESTART cartservice,5
+sac_per,F2,currencyservice,none,5
+sac_per,F3,cartservice,RESTORE cartservice,5
+sac_per,F3,currencyservice,RESTORE currencyservice,5
+sac_per,F4,frontend,SCALE_UP frontend > SCALE_UP frontend,8
+sac_per,F4,frontend,SCALE_UP frontend,2
+sac_per,NULL,,none,10
+sac_per_cold,F1,productcatalogservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,5
+sac_per_cold,F1,productcatalogservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,2
+sac_per_cold,F1,productcatalogservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F1,productcatalogservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F1,productcatalogservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F2,cartservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,2
+sac_per_cold,F2,cartservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F2,cartservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F2,cartservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F2,currencyservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,4
+sac_per_cold,F2,currencyservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F3,cartservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,3
+sac_per_cold,F3,cartservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F3,cartservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F3,currencyservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,3
+sac_per_cold,F3,currencyservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F3,currencyservice,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice,2
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,2
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,F4,frontend,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > SCALE_UP frontend > SCALE_UP frontend > RESTORE cartservice > RESTORE cartservice,1
+sac_per_cold,NULL,,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,4
+sac_per_cold,NULL,,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,3
+sac_per_cold,NULL,,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,2
+sac_per_cold,NULL,,RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice > RESTORE cartservice,1

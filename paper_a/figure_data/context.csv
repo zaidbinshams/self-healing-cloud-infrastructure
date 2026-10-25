@@ -1,0 +1,4 @@
+block,ticks,decision_latency_median_s,decision_latency_p95_s,decision_latency_max_s,lead_in_ticks,lead_in_server_p95_median_ms,lead_in_client_p99_median_ms,lead_in_client_p99_p95_ms
+main,3851,0.3307,0.894,8.035,919,22.0,113.7,359.9
+edge,458,1.443,2.02,2.831,138,22.0,108.1,212.9
+seed1,1145,0.3036,0.9563,1.406,365,22.0,103.9,200.8
