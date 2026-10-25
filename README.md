@@ -147,15 +147,7 @@ The code, configuration, evaluation schedule and analysis are complete, but clus
 
 ## Citing
 
-A paper describing this work is in preparation. Until it is published, please cite the repository:
-
-```bibtex
-@misc{selfhealingcloud2026,
-  title        = {Self-Healing Cloud Infrastructure: Online Reinforcement Learning for Fault Remediation on a Live Kubernetes Cluster},
-  year         = {2026},
-  howpublished = {\url{https://github.com/zaidbinshams/self-healing-cloud-infrastructure}}
-}
-```
+TBA
 
 ## License
 
