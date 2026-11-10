@@ -144,7 +144,7 @@ def fig_training() -> None:
         x = np.arange(ROLL, len(ret) + 1)
         ax.plot(x, roll, color=c, ls=ls)
         ends.append((x[-1], roll[-1], label))
-    for y, (x_end, _, label) in zip(spread([e[1] for e in ends], 0.9), ends):
+    for y, (x_end, _, label) in zip(spread([e[1] for e in ends], 1.8), ends):
         ax.annotate(label, (x_end, y), xytext=(3, 0), textcoords="offset points", va="center", fontsize=7,
                     color=INK_2, annotation_clip=False)
     ax.set_xlabel("training episode")
